@@ -66,7 +66,8 @@ export function LapanganSection({ data }: { data: BerandaData }) {
     const q = new URLSearchParams();
     if (o) q.set('olahraga', o);
     if (data.tanggal !== data.hariIni) q.set('tanggal', data.tanggal);
-    return `/${q.size ? '?' + q : ''}#lapangan`;
+    const s = q.toString();
+    return `/${s ? '?' + s : ''}#lapangan`;
   };
   return (
     <section id="lapangan" className={`${pad} bg-white py-[130px] text-center`}>
@@ -96,7 +97,10 @@ export function LapanganSection({ data }: { data: BerandaData }) {
               <article key={k.id} className="card flex flex-col gap-5">
                 <Link href={`/lapangan/${k.id}`} aria-label={`Lihat detail ${k.nama}`} className="relative block aspect-[416/300] no-underline">
                   <CourtSurface jenis={k.ilustrasi} base={p.base} line={p.line} terang={p.terang} className="card-img absolute inset-0 overflow-hidden rounded-[36px]">
-                    {k.fotoUrl && /* eslint-disable-next-line @next/next/no-img-element */ <img src={k.fotoUrl} alt="" loading="lazy" className="absolute inset-0 size-full object-cover" />}
+                    {k.fotoUrl && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={k.fotoUrl} alt="" loading="lazy" className="absolute inset-0 size-full object-cover" />
+                    )}
                   </CourtSurface>
                   <span className="absolute left-5 top-5 rounded-full bg-white px-4 py-[9px] text-[13px] font-bold">{k.olahraga}</span>
                   <span aria-hidden="true" className="absolute bottom-[18px] right-[18px] flex size-[60px] items-center justify-center rounded-full bg-white shadow-[0_10px_24px_rgba(8,44,28,.2)]"><Icon name="arrow" size={24} stroke="#0B2B1E" width={2.4} /></span>

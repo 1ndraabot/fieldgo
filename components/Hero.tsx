@@ -1,5 +1,5 @@
 import type { BerandaData } from '@/lib/beranda';
-import { labelPanjang, labelPendek } from '@/lib/format';
+import { labelPendek } from '@/lib/format';
 import { SITE } from '@/lib/site';
 import { CourtSurface } from './Court';
 import { Icon, type IconName } from './icons';
