@@ -1,0 +1,167 @@
+// Subset PRD Bagian 7 yang dibaca Beranda. Entitas lain (Fasilitas, Pembayaran, TokenAkun, dst.) menyusul.
+// Constraint yang tidak bisa ditulis di Prisma (CHECK jam 6-24, UNIQUE parsial SlotPesanan aktif) masuk lewat SQL migrasi.
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum TipeHari {
+  weekday
+  weekend
+}
+
+enum PeranPengguna {
+  penyewa
+  admin
+}
+
+enum StatusPesanan {
+  menunggu_pembayaran
+  menunggu_verifikasi
+  terkonfirmasi
+  pengajuan_pembatalan
+  ditolak
+  kedaluwarsa
+  dibatalkan
+  selesai
+}
+
+model JenisOlahraga {
+  id       Int       @id @default(autoincrement())
+  nama     String    @unique
+  lapangan Lapangan[]
+
+  @@map("jenis_olahraga")
+}
+
+model Lapangan {
+  id              Int            @id @default(autoincrement())
+  jenisOlahragaId Int            @map("jenis_olahraga_id")
+  nama            String
+  deskripsi       String?
+  alamat          String
+  latitude        Decimal?       @db.Decimal(9, 6)
+  longitude       Decimal?       @db.Decimal(9, 6)
+  aktif           Boolean        @default(true)
+  jenisOlahraga   JenisOlahraga  @relation(fields: [jenisOlahragaId], references: [id])
+  foto            FotoLapangan[]
+  jamOperasional  JamOperasional[]
+  tarif           Tarif[]
+  blokir          BlokirJadwal[]
+  pesanan         Pesanan[]
+  slot            SlotPesanan[]
+
+  @@map("lapangan")
+}
+
+model FotoLapangan {
+  id         Int      @id @default(autoincrement())
+  lapanganId Int      @map("lapangan_id")
+  berkas     String // kunci objek di storage
+  urutan     Int      @default(0)
+  fotoUtama  Boolean  @default(false) @map("foto_utama")
+  lapangan   Lapangan @relation(fields: [lapanganId], references: [id])
+
+  @@index([lapanganId])
+  @@map("foto_lapangan")
+}
+
+model JamOperasional {
+  id         Int      @id @default(autoincrement())
+  lapanganId Int      @map("lapangan_id")
+  hari       Int // ISO 1-7, Senin=1
+  jamBuka    Int      @map("jam_buka")
+  jamTutup   Int      @map("jam_tutup")
+  buka       Boolean  @default(true)
+  lapangan   Lapangan @relation(fields: [lapanganId], references: [id])
+
+  @@unique([lapanganId, hari])
+  @@map("jam_operasional")
+}
+
+model Tarif {
+  id          Int      @id @default(autoincrement())
+  lapanganId  Int      @map("lapangan_id")
+  tipeHari    TipeHari @map("tipe_hari")
+  jamMulai    Int      @map("jam_mulai")
+  jamSelesai  Int      @map("jam_selesai")
+  hargaPerJam Int      @map("harga_per_jam")
+  lapangan    Lapangan @relation(fields: [lapanganId], references: [id])
+
+  @@index([lapanganId])
+  @@map("tarif")
+}
+
+model BlokirJadwal {
+  id             Int      @id @default(autoincrement())
+  lapanganId     Int      @map("lapangan_id")
+  tanggalMulai   DateTime @map("tanggal_mulai") @db.Date
+  tanggalSelesai DateTime @map("tanggal_selesai") @db.Date
+  jamMulai       Int?     @map("jam_mulai") // kosong = sehari penuh
+  jamSelesai     Int?     @map("jam_selesai")
+  alasan         String
+  dibuatPada     DateTime @default(now()) @map("dibuat_pada")
+  lapangan       Lapangan @relation(fields: [lapanganId], references: [id])
+
+  @@index([lapanganId, tanggalMulai, tanggalSelesai])
+  @@map("blokir_jadwal")
+}
+
+model Pengguna {
+  id                      Int           @id @default(autoincrement())
+  nama                    String
+  email                   String        @unique
+  kataSandi               String        @map("kata_sandi") // hash
+  nomorKontak             String        @map("nomor_kontak")
+  peran                   PeranPengguna @default(penyewa)
+  emailTerverifikasiPada  DateTime?     @map("email_terverifikasi_pada")
+  dinonaktifkanPada       DateTime?     @map("dinonaktifkan_pada")
+  dibuatPada              DateTime      @default(now()) @map("dibuat_pada")
+  pesanan                 Pesanan[]
+
+  @@map("pengguna")
+}
+
+model Pesanan {
+  id              Int           @id @default(autoincrement())
+  kodePesanan     String        @unique @map("kode_pesanan")
+  penggunaId      Int           @map("pengguna_id")
+  lapanganId      Int           @map("lapangan_id")
+  tanggalMain     DateTime      @map("tanggal_main") @db.Date
+  jamMulai        Int           @map("jam_mulai")
+  jamSelesai      Int           @map("jam_selesai")
+  jumlahJam       Int           @map("jumlah_jam")
+  totalHarga      Int           @map("total_harga")
+  status          StatusPesanan @default(menunggu_pembayaran)
+  batasBayarPada  DateTime      @map("batas_bayar_pada")
+  alasanPenolakan String?       @map("alasan_penolakan")
+  dibuatPada      DateTime      @default(now()) @map("dibuat_pada")
+  pengguna        Pengguna      @relation(fields: [penggunaId], references: [id])
+  lapangan        Lapangan      @relation(fields: [lapanganId], references: [id])
+  slot            SlotPesanan[]
+
+  @@index([penggunaId, dibuatPada])
+  @@index([status, batasBayarPada])
+  @@index([tanggalMain])
+  @@map("pesanan")
+}
+
+model SlotPesanan {
+  id          Int      @id @default(autoincrement())
+  pesananId   Int      @map("pesanan_id")
+  lapanganId  Int      @map("lapangan_id")
+  tanggal     DateTime @db.Date
+  jam         Int // jam mulai 6-23
+  hargaPerJam Int      @map("harga_per_jam")
+  aktif       Boolean  @default(true)
+  pesanan     Pesanan  @relation(fields: [pesananId], references: [id])
+  lapangan    Lapangan @relation(fields: [lapanganId], references: [id])
+
+  @@index([lapanganId, tanggal])
+  @@map("slot_pesanan")
+}
