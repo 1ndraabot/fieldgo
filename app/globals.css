@@ -1,0 +1,34 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ink: #0b2b1e;
+  --color-forest: #134230;
+  --color-brand: #0e8a4a;
+  --color-brand-2: #16a05a;
+  --color-brand-3: #22c06b;
+  --color-lime: #c6f432;
+  --color-mint: #ddf7e8;
+  --color-mist: #f2fcf6;
+  --color-line: #d7ebdf;
+  --color-muted: #5b7266;
+  --font-sans: var(--font-jakarta), system-ui, sans-serif;
+  --font-display: var(--font-sora), sans-serif;
+}
+
+body { @apply bg-white font-sans text-ink; }
+a { color: inherit; }
+a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible {
+  outline: 3px solid var(--color-brand-2);
+  outline-offset: 3px;
+}
+
+.btn { transition: transform .18s ease, background .18s ease, box-shadow .18s ease; }
+.btn:hover { transform: translateY(-2px); }
+.card-img { transition: transform .35s ease; }
+.card:hover .card-img { transform: translateY(-6px); }
+.stat + .stat { border-left: 1px solid var(--color-line); }
+.stripe-dark { background-image: repeating-linear-gradient(90deg, transparent 0 10%, rgba(255, 255, 255, .09) 10% 20%); }
+.stripe-light { background-image: repeating-linear-gradient(90deg, transparent 0 10%, rgba(11, 43, 30, .07) 10% 20%); }
+
+@media (max-width: 980px) { .stat + .stat { border-left: 0; } }
+@media (prefers-reduced-motion: reduce) { .btn, .card-img { transition: none; } }

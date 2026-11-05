@@ -3,12 +3,12 @@ import { PrismaClient } from '@prisma/client';
 
 const db = new PrismaClient();
 const LAPANGAN = [
-  { nama: 'Futsal Arena A', olahraga: 'Futsal', harga: 90000 },
-  { nama: 'Badminton Court 1', olahraga: 'Badminton', harga: 60000 },
-  { nama: 'Basket Outdoor', olahraga: 'Basket', harga: 75000 },
-  { nama: 'Tenis Lapangan 1', olahraga: 'Tenis', harga: 85000 },
-  { nama: 'Mini Soccer', olahraga: 'Mini soccer', harga: 250000 },
-  { nama: 'Badminton Court 2', olahraga: 'Badminton', harga: 60000 },
+  { nama: 'Futsal Arena A', olahraga: 'Futsal', harga: 90000, deskripsi: 'Indoor · lantai vinyl' },
+  { nama: 'Badminton Court 1', olahraga: 'Badminton', harga: 60000, deskripsi: 'Indoor · 4 pemain' },
+  { nama: 'Basket Outdoor', olahraga: 'Basket', harga: 75000, deskripsi: 'Outdoor · full court' },
+  { nama: 'Tenis Lapangan 1', olahraga: 'Tenis', harga: 85000, deskripsi: 'Outdoor · hard court' },
+  { nama: 'Mini Soccer', olahraga: 'Mini soccer', harga: 250000, deskripsi: 'Outdoor · rumput sintetis' },
+  { nama: 'Badminton Court 2', olahraga: 'Badminton', harga: 60000, deskripsi: 'Indoor · 4 pemain' },
 ];
 
 async function main() {
@@ -17,7 +17,7 @@ async function main() {
     const jenis = await db.jenisOlahraga.upsert({ where: { nama: l.olahraga }, update: {}, create: { nama: l.olahraga } });
     await db.lapangan.create({
       data: {
-        nama: l.nama, alamat: 'Jl. Sudirman No. 24', jenisOlahragaId: jenis.id,
+        nama: l.nama, deskripsi: l.deskripsi, alamat: 'Jl. Sudirman No. 24', jenisOlahragaId: jenis.id,
         jamOperasional: { create: [1, 2, 3, 4, 5, 6, 7].map((hari) => ({ hari, jamBuka: 6, jamTutup: 24 })) },
         tarif: { create: [
           { tipeHari: 'weekday', jamMulai: 6, jamSelesai: 24, hargaPerJam: l.harga },

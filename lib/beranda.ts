@@ -5,13 +5,14 @@ import { computeSlotStatuses, type SlotInfo } from './slots.ts';
 
 export type Ilustrasi = 'futsal' | 'badminton' | 'basket' | 'tenis';
 export type KartuLapangan = {
-  id: number; nama: string; olahraga: string; ilustrasi: Ilustrasi;
+  id: number; nama: string; deskripsi: string | null; olahraga: string; ilustrasi: Ilustrasi;
   hargaMulai: number | null; fotoUrl: string | null; urutan: number;
 };
 export type BerandaData = {
   olahragaList: string[];
   olahraga: string | null;
   tanggal: string;
+  hariIni: string;
   kartu: KartuLapangan[];
   unggulan: { id: number; nama: string; slot: SlotInfo[] } | null;
   slotKosongHariIni: number;
@@ -73,7 +74,7 @@ export async function getBerandaData(
     const fotoKey = l.foto[0]?.berkas;
     const base = process.env.STORAGE_PUBLIC_BASE_URL;
     return {
-      id: l.id, nama: l.nama, olahraga: l.jenisOlahraga.nama, ilustrasi: ilustrasiUntuk(l.jenisOlahraga.nama), urutan,
+      id: l.id, nama: l.nama, deskripsi: l.deskripsi, olahraga: l.jenisOlahraga.nama, ilustrasi: ilustrasiUntuk(l.jenisOlahraga.nama), urutan,
       hargaMulai: harga.length ? Math.min(...harga) : null,
       fotoUrl: fotoKey && base ? `${base}/${fotoKey}` : null,
     } satisfies KartuLapangan;
@@ -81,7 +82,7 @@ export async function getBerandaData(
 
   const unggulanL = lapangan.find((l) => l.id === kartu[0]?.id);
   return {
-    olahragaList: jenis, olahraga, tanggal: p.tanggal, kartu,
+    olahragaList: jenis, olahraga, tanggal: p.tanggal, hariIni, kartu,
     unggulan: unggulanL ? { id: unggulanL.id, nama: unggulanL.nama, slot: hitung(unggulanL, p.tanggal) } : null,
     slotKosongHariIni: lapangan.reduce((n, l) => n + hitung(l, hariIni).filter((s) => s.status === 'tersedia').length, 0),
     stats: { lapangan: lapangan.length, cabang: jenis.length, jamTerpesan30Hari: jamTerpesan },
