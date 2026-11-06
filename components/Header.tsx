@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { SITE } from '@/lib/site';
+import { inisial } from '@/lib/auth/rules';
 import { Icon } from './icons';
+import { KeluarButton } from './auth/KeluarButton';
 
 export function Logo() {
   return (
@@ -13,7 +15,7 @@ export function Logo() {
 
 const NAV = [['Lapangan', '/#lapangan'], ['Kalender', '/#kalender'], ['Jadwal saya', '/jadwal-saya'], ['Riwayat', '/riwayat']] as const;
 
-export function Header() {
+export function Header({ pengguna }: { pengguna?: { nama: string } | null }) {
   return (
     <header className="relative z-10 flex items-center justify-between gap-4 bg-white px-[clamp(16px,4.5vw,64px)] py-5">
       <Link href="/" aria-label={`${SITE.nama}, beranda`} className="no-underline"><Logo /></Link>
@@ -22,10 +24,20 @@ export function Header() {
           <Link key={nama} href={href} className={`rounded-full px-[22px] py-2.5 text-[15px] font-semibold no-underline ${i === 0 ? 'bg-ink text-white' : ''}`}>{nama}</Link>
         ))}
       </nav>
-      <div className="flex gap-2.5">
-        <Link href="/masuk" className="btn rounded-full border-[1.5px] border-ink px-6 py-[13px] text-[15px] font-bold no-underline">Masuk</Link>
-        <Link href="/daftar" className="btn rounded-full bg-brand px-6 py-[13px] text-[15px] font-bold text-white no-underline">Daftar</Link>
-      </div>
+      {pengguna ? (
+        <div className="flex items-center gap-3">
+          <span className="flex max-[980px]:hidden items-center gap-2.5 text-[15px] font-bold">
+            <span className="flex size-11 items-center justify-center rounded-[15px] bg-mint text-base text-[#0A6B3A]">{inisial(pengguna.nama)}</span>
+            {pengguna.nama}
+          </span>
+          <KeluarButton />
+        </div>
+      ) : (
+        <div className="flex gap-2.5">
+          <Link href="/masuk" className="btn rounded-full border-[1.5px] border-ink px-6 py-[13px] text-[15px] font-bold no-underline">Masuk</Link>
+          <Link href="/daftar" className="btn rounded-full bg-brand px-6 py-[13px] text-[15px] font-bold text-white no-underline">Daftar</Link>
+        </div>
+      )}
     </header>
   );
 }

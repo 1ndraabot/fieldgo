@@ -11,6 +11,12 @@ export function formatRentang(jam: number[]): string {
   return `${formatJam(jam[0])}–${formatJam(jam[jam.length - 1] + 1)} · ${jam.length} jam`;
 }
 
+/** Hitung mundur untuk pesan 429 (rate limit), mis. 903 → "15 mnt 3 dtk", 65 → "1 mnt 5 dtk". */
+export function formatHitungMundur(detik: number): string {
+  const m = Math.floor(detik / 60), s = detik % 60;
+  return m > 0 ? (s > 0 ? `${m} mnt ${s} dtk` : `${m} mnt`) : `${s} dtk`;
+}
+
 /** Semua perhitungan PRD memakai WIB (Asia/Jakarta, UTC+7 tanpa DST). */
 export function wibSekarang(now: Date): { tanggal: string; jam: number } {
   const wib = new Date(now.getTime() + 7 * 3600_000);

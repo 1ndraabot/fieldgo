@@ -123,8 +123,36 @@ model Pengguna {
   dinonaktifkanPada       DateTime?     @map("dinonaktifkan_pada")
   dibuatPada              DateTime      @default(now()) @map("dibuat_pada")
   pesanan                 Pesanan[]
+  tokenAkun               TokenAkun[]
+  sesi                    Sesi[]
 
   @@map("pengguna")
+}
+
+model TokenAkun {
+  id             Int       @id @default(autoincrement())
+  penggunaId     Int       @map("pengguna_id")
+  jenis          String // 'verifikasi_email'
+  tokenHash      String    @unique @map("token_hash") // hanya hash yang disimpan
+  kedaluwarsaPada DateTime  @map("kedaluwarsa_pada")
+  digunakanPada  DateTime? @map("digunakan_pada")
+  dibuatPada     DateTime  @default(now()) @map("dibuat_pada")
+  pengguna       Pengguna  @relation(fields: [penggunaId], references: [id])
+
+  @@index([penggunaId, jenis])
+  @@map("token_akun")
+}
+
+model Sesi {
+  id              Int      @id @default(autoincrement())
+  penggunaId      Int      @map("pengguna_id")
+  tokenHash       String   @unique @map("token_hash") // hanya hash yang disimpan
+  kedaluwarsaPada DateTime @map("kedaluwarsa_pada")
+  dibuatPada      DateTime @default(now()) @map("dibuat_pada")
+  pengguna        Pengguna @relation(fields: [penggunaId], references: [id])
+
+  @@index([penggunaId])
+  @@map("sesi")
 }
 
 model Pesanan {
