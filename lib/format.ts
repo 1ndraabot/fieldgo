@@ -11,12 +11,6 @@ export function formatRentang(jam: number[]): string {
   return `${formatJam(jam[0])}–${formatJam(jam[jam.length - 1] + 1)} · ${jam.length} jam`;
 }
 
-/** Hitung mundur untuk pesan 429 (rate limit), mis. 903 → "15 mnt 3 dtk", 65 → "1 mnt 5 dtk". */
-export function formatHitungMundur(detik: number): string {
-  const m = Math.floor(detik / 60), s = detik % 60;
-  return m > 0 ? (s > 0 ? `${m} mnt ${s} dtk` : `${m} mnt`) : `${s} dtk`;
-}
-
 /** Semua perhitungan PRD memakai WIB (Asia/Jakarta, UTC+7 tanpa DST). */
 export function wibSekarang(now: Date): { tanggal: string; jam: number } {
   const wib = new Date(now.getTime() + 7 * 3600_000);
@@ -44,4 +38,18 @@ export function labelPendek(tanggal: string): string {
 export function labelPanjang(tanggal: string): string {
   const d = utcDate(tanggal);
   return `${HARI[d.getUTCDay()]}, ${d.getUTCDate()} ${BULAN[d.getUTCMonth()]}`;
+}
+
+/** Hitung mundur untuk batas percobaan / kirim ulang, mis. 272 → "04:32". */
+export function formatHitungMundur(detik: number): string {
+  const d = Math.max(0, Math.floor(detik));
+  return `${String(Math.floor(d / 60)).padStart(2, '0')}:${String(d % 60).padStart(2, '0')}`;
+}
+
+/** Waktu dibuat untuk tampilan, mis. "4 Nov 2026, 12.00 WIB". */
+export function labelDibuat(d: Date): string {
+  const w = new Date(d.getTime() + 7 * 3600_000); // WIB = UTC+7
+  const hh = String(w.getUTCHours()).padStart(2, '0');
+  const mm = String(w.getUTCMinutes()).padStart(2, '0');
+  return `${w.getUTCDate()} ${BULAN[w.getUTCMonth()].slice(0, 3)} ${w.getUTCFullYear()}, ${hh}.${mm} WIB`;
 }

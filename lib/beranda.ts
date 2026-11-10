@@ -1,3 +1,4 @@
+import { DEMO, demoBeranda } from './demo.ts';
 import { db } from './db.ts';
 import { tambahHari, wibSekarang } from './format.ts';
 import { parseBerandaParams } from './params.ts';
@@ -37,6 +38,7 @@ export async function getBerandaData(
 ): Promise<BerandaData> {
   const hariIni = wibSekarang(now).tanggal;
   const p = parseBerandaParams(raw, hariIni);
+  if (DEMO) return demoBeranda(p.olahraga, p.tanggal, now); // tanpa database: data contoh
   const tanggalLain = [hariIni, p.tanggal].sort();
 
   // Lima kueri paralel untuk seluruh halaman (tanpa N+1).

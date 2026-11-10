@@ -8,6 +8,7 @@ import { Icon, type IconName } from '@/components/icons';
 import { auth } from '@/lib/auth/deps';
 import { penggunaSaatIni } from '@/lib/auth/session';
 import { verifikasiEmail } from '@/lib/auth/service';
+import { DEMO } from '@/lib/demo';
 
 export const metadata: Metadata = { title: 'Gelanggang — Verifikasi email' };
 
@@ -28,7 +29,7 @@ export default async function VerifikasiEmail({ searchParams }: { searchParams: 
   const sp = await searchParams;
   const token = typeof sp.token === 'string' ? sp.token : null;
   // Token dipakai di sini (GET): tautan sekali pakai, jadi kunjungan kedua akan tampil "tidak berlaku".
-  const hasilToken = token ? await verifikasiEmail(auth, token) : null;
+  const hasilToken = token && !DEMO ? await verifikasiEmail(auth, token) : null;
   const pengguna = await penggunaSaatIni(); // dibaca sesudah verifikasi agar header/banner mutakhir
   if (!token && !pengguna) redirect('/masuk?next=%2Fverifikasi-email');
 
