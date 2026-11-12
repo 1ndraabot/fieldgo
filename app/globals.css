@@ -15,11 +15,15 @@
   --font-display: var(--font-sora), sans-serif;
 }
 
-body { @apply bg-white font-sans text-ink; }
-a { color: inherit; }
-a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible {
-  outline: 3px solid var(--color-brand-2);
-  outline-offset: 3px;
+/* Aturan dasar harus di @layer base: CSS tanpa layer akan mengalahkan utilitas Tailwind v4
+   (a { color: inherit } tanpa layer membuat text-white pada <a> kalah dan teks jadi gelap di bg-ink). */
+@layer base {
+  body { @apply bg-white font-sans text-ink; }
+  a { color: inherit; }
+  a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible {
+    outline: 3px solid var(--color-brand-2);
+    outline-offset: 3px;
+  }
 }
 
 .btn { transition: transform .18s ease, background .18s ease, box-shadow .18s ease; }

@@ -1,0 +1,77 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --f9: #0B2B1E;
+  --f8: #134230;
+  --lime: #C6F432;
+}
+
+/* 1. Reset global & aturan dasar */
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: var(--font-jakarta), 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  color: var(--f9);
+  background: #ffffff;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+a { color: inherit; text-decoration: none; }
+button, input, select, textarea { font-family: inherit; color: inherit; }
+
+/* 2. Aksesibilitas fokus */
+:focus-visible { outline: 3px solid var(--lime); outline-offset: 3px; }
+.dark :focus-visible, .card-d :focus-visible, .adm-side :focus-visible { outline-color: var(--lime); }
+
+/* 3. Transisi & animasi */
+.btn { transition: transform 0.18s ease, background 0.18s ease, opacity 0.18s ease; }
+.btn:hover:not(:disabled) { transform: translateY(-2px); }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.card-img { transition: transform 0.35s ease; }
+.card:hover .card-img { transform: translateY(-6px); }
+
+.skel {
+  border-radius: 16px;
+  background: linear-gradient(90deg, #E8F3EC 0%, #F7FCF9 50%, #E8F3EC 100%);
+  background-size: 200% 100%;
+  animation: sh 1.3s linear infinite;
+}
+@keyframes sh { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+.stat + .stat { border-left: 1px solid #D7EBDF; }
+
+@media (prefers-reduced-motion: reduce) {
+  .btn, .card-img { transition: none !important; }
+  .skel { animation: none !important; }
+}
+
+/* 4. Breakpoint 980px */
+@media (max-width: 980px) {
+  .hide-m { display: none !important; }
+  .float-m { display: none !important; }
+  .stat + .stat { border-left: 0; }
+}
+
+/* 5. Permukaan gelap & watermark */
+.card-d { background: var(--f9); color: #fff; border-radius: 36px; padding: 28px; position: relative; overflow: hidden; }
+.footer-s { background: var(--f9); color: #fff; border-radius: 56px 56px 0 0; padding: 48px clamp(20px, 5vw, 72px) 0; overflow: hidden; }
+.footer-s .wm,
+.wm {
+  margin-top: 40px;
+  font-family: var(--font-sora), 'Sora', sans-serif;
+  font-weight: 800;
+  font-size: clamp(72px, 17vw, 250px);
+  line-height: 0.82;
+  letter-spacing: -0.05em;
+  color: var(--f8);
+  white-space: nowrap;
+  text-align: center;
+  height: 0.62em;
+  overflow: hidden;
+  user-select: none;
+  pointer-events: none;
+}
