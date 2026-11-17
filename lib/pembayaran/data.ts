@@ -12,19 +12,22 @@ export type HalamanBayar = {
 /** Kepemilikan di kueri: pesanan orang lain → null (halaman 404). `penggunaId` dari sesi server. */
 export async function getHalamanBayar(kode: string, penggunaId: number): Promise<HalamanBayar | null> {
   if (DEMO) return demoHalamanBayar(kode, new Date()); // tanpa database: data contoh
-  const [p, pengaturan] = await Promise.all([
+  // Bentuk fieldgo: satu kunci jsonb `rekening_tujuan` berisi { bank, nomor, atas_nama }.
+  const [p, rekening] = await Promise.all([
     db.pesanan.findFirst({
       where: { kodePesanan: kode, penggunaId },
       include: { lapangan: { select: { nama: true } }, slot: { orderBy: { jam: 'asc' }, select: { jam: true, hargaPerJam: true } } },
     }),
-    db.pengaturan.findMany({ where: { nama: { in: ['rekening_bank', 'rekening_nomor', 'rekening_nama'] } } }),
+    db.pengaturan.findUnique({ where: { kunci: 'rekening_tujuan' } }),
   ]);
   if (!p) return null;
-  const v = Object.fromEntries(pengaturan.map((x) => [x.nama, x.nilai]));
+  const r = rekening?.nilai as { bank?: unknown; nomor?: unknown; atas_nama?: unknown } | null | undefined;
   return {
     kode: p.kodePesanan, status: p.status, batasBayarPada: p.batasBayarPada, dibuatPada: p.dibuatPada, alasanPenolakan: p.alasanPenolakan,
     lapanganNama: p.lapangan.nama, tanggal: p.tanggalMain.toISOString().slice(0, 10), jamMulai: p.jamMulai, jamSelesai: p.jamSelesai,
     totalHarga: p.totalHarga, slot: p.slot.map((s) => ({ jam: s.jam, harga: s.hargaPerJam })),
-    rekening: v.rekening_bank && v.rekening_nomor && v.rekening_nama ? { bank: v.rekening_bank, nomor: v.rekening_nomor, nama: v.rekening_nama } : null,
+    rekening: r?.bank && r?.nomor && r?.atas_nama
+      ? { bank: String(r.bank), nomor: String(r.nomor), nama: String(r.atas_nama) }
+      : null,
   };
 }

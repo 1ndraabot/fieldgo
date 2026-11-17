@@ -1,5 +1,5 @@
 import { buatHandlers } from './handlers.ts';
-import { mailerKonsol } from './mailer.ts';
+import { pilihMailer } from './mailer.ts';
 import { prismaStore } from './prisma-store.ts';
 import { buatLimiter } from './ratelimit.ts';
 import { DaftarSchema, MasukSchema } from './schema.ts';
@@ -9,7 +9,7 @@ const produksi = process.env.NODE_ENV === 'production';
 
 export const auth: AuthDeps = {
   store: prismaStore,
-  mailer: mailerKonsol,
+  mailer: pilihMailer, // Resend jika RESEND_API_KEY+MAIL_DARI diset, konsol jika tidak
   sekarang: () => new Date(),
   baseUrl: process.env.APP_URL ?? 'http://localhost:3000',
 };

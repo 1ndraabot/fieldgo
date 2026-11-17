@@ -87,11 +87,13 @@ async function seedPesanan() {
 }
 
 // Rekening tujuan transfer (PRD: tabel Pengaturan). DUMMY, ganti lewat admin atau langsung di basis data.
+// Bentuk fieldgo: satu kunci jsonb `rekening_tujuan` berisi { bank, nomor, atas_nama }.
 async function seedPengaturan() {
-  const nilai = { rekening_bank: 'Bank BCA', rekening_nomor: '1234 567 890', rekening_nama: 'Gelanggang Sport' };
-  for (const [nama, v] of Object.entries(nilai)) {
-    await db.pengaturan.upsert({ where: { nama }, update: {}, create: { nama, nilai: v } });
-  }
+  await db.pengaturan.upsert({
+    where: { kunci: 'rekening_tujuan' },
+    update: {},
+    create: { kunci: 'rekening_tujuan', nilai: { bank: 'Bank BCA', nomor: '1234 567 890', atas_nama: 'Gelanggang Sport' } },
+  });
   console.log('Seed pengaturan: rekening tujuan dummy.');
 }
 

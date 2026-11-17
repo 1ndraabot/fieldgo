@@ -13,22 +13,30 @@ datasource db {
 enum TipeHari {
   weekday
   weekend
+
+  @@map("tipe_hari")
 }
 
 enum PeranPengguna {
   penyewa
   admin
+
+  @@map("peran_pengguna")
 }
 
 enum JenisToken {
   verifikasi_email
   reset_sandi
+
+  @@map("jenis_token")
 }
 
 enum StatusVerifikasi {
   menunggu
   disetujui
   ditolak
+
+  @@map("status_verifikasi")
 }
 
 enum StatusPesanan {
@@ -40,6 +48,8 @@ enum StatusPesanan {
   kedaluwarsa
   dibatalkan
   selesai
+
+  @@map("status_pesanan")
 }
 
 model JenisOlahraga {
@@ -239,10 +249,11 @@ model RiwayatStatus {
   @@map("riwayat_status")
 }
 
-// Pasangan nama-nilai: rekening_bank, rekening_nomor, rekening_nama (PRD Bagian 5/7).
+// Pasangan kunci-nilai jsonb (bentuk fieldgo di Supabase): rekening_bank, rekening_nomor,
+// rekening_nama, batas_bayar_jam, batas_pembatalan_hari (PRD Bagian 5/7).
 model Pengaturan {
-  nama  String @id
-  nilai String
+  kunci String @id
+  nilai Json
 
   @@map("pengaturan")
 }
