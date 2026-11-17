@@ -3,7 +3,7 @@ import { JadwalSayaView } from '@/components/JadwalSayaView';
 import { wajibPenyewa } from '@/lib/auth/session';
 import { getJadwalSaya } from '@/lib/jadwal-data';
 
-export const metadata: Metadata = { title: 'Gelanggang — Jadwal saya' };
+export const metadata: Metadata = { title: 'FieldGo — Jadwal saya' };
 export const dynamic = 'force-dynamic'; // sisa waktu bayar dan jadwal berjalan harus selalu terbaru
 
 export default async function JadwalSaya() {

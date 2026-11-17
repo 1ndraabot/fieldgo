@@ -4,7 +4,7 @@ import { PembayaranView } from '@/components/PembayaranView';
 import { wajibPenyewa } from '@/lib/auth/session';
 import { getHalamanBayar } from '@/lib/pembayaran/data';
 
-export const metadata: Metadata = { title: 'Gelanggang — Pembayaran' };
+export const metadata: Metadata = { title: 'FieldGo — Pembayaran' };
 export const dynamic = 'force-dynamic'; // batas bayar dan status harus selalu terbaru
 
 const KODE = /^[A-Za-z0-9-]{4,40}$/;

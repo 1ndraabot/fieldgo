@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { VerifikasiView } from '@/components/admin/VerifikasiView';
 import { getAdminVerifikasi } from '@/lib/demo-fe';
 
-export const metadata: Metadata = { title: 'Gelanggang — Admin · Verifikasi' };
+export const metadata: Metadata = { title: 'FieldGo — Admin · Verifikasi' };
 
 // FE dulu: data dummy. Aksi setujui/tolak sungguhan (FR-ADM-06/07) menyusul bersama transaksi backend.
 export default async function AdminVerifikasi({ searchParams }: { searchParams: Promise<{ tab?: string | string[] }> }) {

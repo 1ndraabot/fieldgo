@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { JamOperasionalView } from '@/components/admin/JamOperasionalView';
 import { getAdminJamOperasional, getAdminLapangan } from '@/lib/demo-fe';
 
-export const metadata: Metadata = { title: 'Gelanggang — Admin · Jam operasional' };
+export const metadata: Metadata = { title: 'FieldGo — Admin · Jam operasional' };
 
 const ID = /^\d{1,4}$/;
 

@@ -4,7 +4,7 @@ import { DEMO_PENGGUNA } from '@/lib/demo';
 import { getRiwayat } from '@/lib/demo-fe';
 import type { StatusPesanan } from '@/lib/slots';
 
-export const metadata: Metadata = { title: 'Gelanggang — Riwayat' };
+export const metadata: Metadata = { title: 'FieldGo — Riwayat' };
 export const dynamic = 'force-dynamic'; // status pesanan harus selalu terbaru
 
 // FE dulu: data dummy dari lib/demo-fe.ts tanpa guard sesi. Saat backend riwayat jadi (FR-HIS-02),

@@ -6,7 +6,7 @@ import { tambahHari, wibSekarang } from '@/lib/format';
 import { parseBerandaParams } from '@/lib/params';
 import { computeSlotStatuses } from '@/lib/slots';
 
-export const metadata: Metadata = { title: 'Gelanggang — Detail lapangan' };
+export const metadata: Metadata = { title: 'FieldGo — Detail lapangan' };
 export const dynamic = 'force-dynamic'; // status slot harus selalu terbaru (PRD Bagian 6)
 
 const ID = /^\d{1,4}$/;

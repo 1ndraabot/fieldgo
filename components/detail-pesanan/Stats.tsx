@@ -7,7 +7,7 @@ const STATS = [
 export default function Stats() {
   return (
     <section
-      aria-label="Angka Gelanggang"
+      aria-label="Angka FieldGo"
       className="relative z-0 -mt-[100px] bg-f0 px-6 pb-[100px] pt-[196px]"
     >
       <div className="flex flex-wrap justify-center gap-x-0 gap-y-12">

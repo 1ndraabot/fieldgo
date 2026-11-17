@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { RekapView } from '@/components/admin/RekapView';
 import { getAdminRekap } from '@/lib/demo-fe';
 
-export const metadata: Metadata = { title: 'Gelanggang — Admin · Rekap' };
+export const metadata: Metadata = { title: 'FieldGo — Admin · Rekap' };
 
 // FE dulu: data dummy. Agregasi dari basis data (FR-ADM-09) menyusul.
 export default function AdminRekap() {

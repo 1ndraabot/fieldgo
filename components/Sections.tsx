@@ -30,7 +30,7 @@ export function DarkPanel({ data }: { data: BerandaData }) {
         </div>
         <div className="max-w-[620px] flex-[1_1_380px]">
           <h2 className="font-display text-[clamp(32px,3.6vw,48px)] font-bold leading-[1.18] tracking-[-0.03em] text-white"><span className="text-lime">#1</span> Booking Lapangan<br />Paling Praktis di Kotamu</h2>
-          <p className="mt-[22px] max-w-[520px] text-[17px] leading-[1.65] text-white/80">Gelanggang menghubungkan pemain dengan lapangan terbaik. Lihat slot real-time, pesan, bayar lewat transfer, dan admin memverifikasi buktinya. Jam kamu aman.</p>
+          <p className="mt-[22px] max-w-[520px] text-[17px] leading-[1.65] text-white/80">FieldGo menghubungkan pemain dengan lapangan terbaik. Lihat slot real-time, pesan, bayar lewat transfer, dan admin memverifikasi buktinya. Jam kamu aman.</p>
           <div className="mt-[30px] flex flex-wrap gap-3.5">
             <Link href="#kalender" className={`${cta} bg-lime text-ink`}>Lihat slot kosong<span className="flex size-9 items-center justify-center rounded-full bg-ink"><Icon name="arrow" size={18} stroke="#C6F432" width={2.4} /></span></Link>
             <Link href="#cara" className="btn flex h-14 items-center rounded-full border-[1.5px] border-white/45 px-7 text-base font-bold text-white no-underline">Cara memesan</Link>
@@ -48,7 +48,7 @@ export function Stats({ data }: { data: BerandaData }) {
     [data.stats.jamTerpesan30Hari.toLocaleString('id-ID'), 'Jam main terpesan dalam 30 hari terakhir'],
   ];
   return (
-    <section aria-label="Angka Gelanggang" className="relative z-0 -mt-[100px] bg-mist px-6 pb-[100px] pt-[196px]">
+    <section aria-label="Angka FieldGo" className="relative z-0 -mt-[100px] bg-mist px-6 pb-[100px] pt-[196px]">
       <div className="flex flex-wrap justify-center gap-y-12">
         {items.map(([angka, label]) => (
           <div key={label} className="stat flex-[0_1_440px] px-6 text-center">

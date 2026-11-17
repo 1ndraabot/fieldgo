@@ -1,4 +1,4 @@
-# Architecture.md — Arsitektur Sistem Gelanggang
+# Architecture.md — Arsitektur Sistem FieldGo
 
 > Gambaran besar kode: lapisan, arus data, arsitektur komponen, dan alur permintaan. Referensi `docs/PRD.md` Bagian 17 (persyaratan teknis) dan 18 (pemetaan).
 

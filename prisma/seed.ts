@@ -36,7 +36,7 @@ const AKUN = [
   { nama: 'Rani Putri', email: 'penyewa@contoh.id', sandi: 'Penyewa123!', peran: 'penyewa', verifikasi: true, nonaktif: false },
   { nama: 'Budi Baru', email: 'baru@contoh.id', sandi: 'Penyewa123!', peran: 'penyewa', verifikasi: false, nonaktif: false },
   { nama: 'Dewi Nonaktif', email: 'nonaktif@contoh.id', sandi: 'Penyewa123!', peran: 'penyewa', verifikasi: true, nonaktif: true },
-  { nama: 'Admin Gelanggang', email: 'admin@contoh.id', sandi: 'Admin123!', peran: 'admin', verifikasi: true, nonaktif: false },
+  { nama: 'Admin FieldGo', email: 'admin@contoh.id', sandi: 'Admin123!', peran: 'admin', verifikasi: true, nonaktif: false },
 ] as const;
 
 async function seedAkun() {
@@ -66,10 +66,10 @@ async function seedPesanan() {
   const hariIni = wibSekarang(new Date()).tanggal;
   const HARGA = 90000;
   const contoh = [
-    { kode: 'GLG-DEMO-0001', hari: 1, mulai: 19, selesai: 21, status: 'terkonfirmasi' },
-    { kode: 'GLG-DEMO-0002', hari: 3, mulai: 8, selesai: 9, status: 'terkonfirmasi' },
-    { kode: 'GLG-DEMO-0003', hari: 2, mulai: 20, selesai: 22, status: 'menunggu_pembayaran' },
-    { kode: 'GLG-DEMO-0004', hari: 4, mulai: 10, selesai: 11, status: 'menunggu_verifikasi' }, // sengaja tidak tampil di Jadwal saya
+    { kode: 'FGO-DEMO-0001', hari: 1, mulai: 19, selesai: 21, status: 'terkonfirmasi' },
+    { kode: 'FGO-DEMO-0002', hari: 3, mulai: 8, selesai: 9, status: 'terkonfirmasi' },
+    { kode: 'FGO-DEMO-0003', hari: 2, mulai: 20, selesai: 22, status: 'menunggu_pembayaran' },
+    { kode: 'FGO-DEMO-0004', hari: 4, mulai: 10, selesai: 11, status: 'menunggu_verifikasi' }, // sengaja tidak tampil di Jadwal saya
   ] as const;
   for (const c of contoh) {
     const tanggal = new Date(tambahHari(hariIni, c.hari) + 'T00:00:00Z');
@@ -92,7 +92,7 @@ async function seedPengaturan() {
   await db.pengaturan.upsert({
     where: { kunci: 'rekening_tujuan' },
     update: {},
-    create: { kunci: 'rekening_tujuan', nilai: { bank: 'Bank BCA', nomor: '1234 567 890', atas_nama: 'Gelanggang Sport' } },
+    create: { kunci: 'rekening_tujuan', nilai: { bank: 'Bank BCA', nomor: '1234 567 890', atas_nama: 'FieldGo Sport' } },
   });
   console.log('Seed pengaturan: rekening tujuan dummy.');
 }

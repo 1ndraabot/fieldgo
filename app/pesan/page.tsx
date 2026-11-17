@@ -5,7 +5,7 @@ import { Header } from '@/components/Header';
 import { formatJam, labelPanjang } from '@/lib/format';
 import { wajibPenyewa } from '@/lib/auth/session';
 
-export const metadata: Metadata = { title: 'Gelanggang — Pemesanan' };
+export const metadata: Metadata = { title: 'FieldGo — Pemesanan' };
 
 type Params = Record<string, string | string[] | undefined>;
 const angka = (v: string | string[] | undefined) => (typeof v === 'string' && /^\d{1,6}$/.test(v) ? Number(v) : null);

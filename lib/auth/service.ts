@@ -46,7 +46,7 @@ async function kirimTokenVerifikasi(d: AuthDeps, p: Pengguna) {
   });
   try {
     await d.mailer.kirim({
-      ke: p.email, subjek: 'Verifikasi email Gelanggang',
+      ke: p.email, subjek: 'Verifikasi email FieldGo',
       teks: `Halo ${p.nama},\n\nBuka tautan ini untuk memverifikasi email kamu (berlaku 24 jam, sekali pakai):\n${d.baseUrl}/verifikasi-email?token=${token}\n`,
     });
   } catch (e) {

@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { BlacklistView } from '@/components/admin/BlacklistView';
 import { getAdminBlacklist, getAdminLapangan } from '@/lib/demo-fe';
 
-export const metadata: Metadata = { title: 'Gelanggang — Admin · Blacklist' };
+export const metadata: Metadata = { title: 'FieldGo — Admin · Blacklist' };
 
 // FE dulu: data dummy. Blokir + pembatalan otomatis pesanan terdampak (FR-ADM-05, AC-15) menyusul.
 export default function AdminBlacklist() {

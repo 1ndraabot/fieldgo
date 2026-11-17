@@ -16,7 +16,7 @@ export default function EksporCsvButton({ periodeLabel, baris }: { periodeLabel:
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `rekap-gelanggang-${periodeLabel.toLowerCase().replace(/\s+/g, '-')}.csv`;
+    a.download = `rekap-fieldgo-${periodeLabel.toLowerCase().replace(/\s+/g, '-')}.csv`;
     document.body.appendChild(a);
     a.click();
     a.remove();

@@ -5,7 +5,7 @@ import { DEMO_PENGGUNA } from '@/lib/demo';
 import { getDetailPesanan } from '@/lib/demo-fe';
 import { wibSekarang } from '@/lib/format';
 
-export const metadata: Metadata = { title: 'Gelanggang — Detail pesanan' };
+export const metadata: Metadata = { title: 'FieldGo — Detail pesanan' };
 export const dynamic = 'force-dynamic';
 
 const KODE = /^[A-Za-z0-9-]{4,40}$/;

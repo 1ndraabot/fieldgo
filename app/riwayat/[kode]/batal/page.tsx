@@ -5,7 +5,7 @@ import { DEMO_PENGGUNA } from '@/lib/demo';
 import { getDetailPesanan } from '@/lib/demo-fe';
 import { formatRupiah, labelPanjang } from '@/lib/format';
 
-export const metadata: Metadata = { title: 'Gelanggang — Ajukan pembatalan' };
+export const metadata: Metadata = { title: 'FieldGo — Ajukan pembatalan' };
 
 const KODE = /^[A-Za-z0-9-]{4,40}$/;
 

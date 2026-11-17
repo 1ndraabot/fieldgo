@@ -49,7 +49,7 @@ export default function DarkPanel() {
             Paling Praktis di Kotamu
           </h2>
           <p className="mt-[22px] max-w-[520px] text-[17px] leading-[1.65] text-white/80">
-            Gelanggang menghubungkan pemain dengan lapangan terbaik. Lihat slot real-time, pesan, bayar lewat transfer, dan admin memverifikasi buktinya. Jam kamu aman.
+            FieldGo menghubungkan pemain dengan lapangan terbaik. Lihat slot real-time, pesan, bayar lewat transfer, dan admin memverifikasi buktinya. Jam kamu aman.
           </p>
           <div className="mt-[30px] flex flex-wrap gap-3.5">
             <ArrowButton href={ROUTES.court(DEFAULT_COURT_ID)} tone="lime">

@@ -40,7 +40,7 @@ export const mailerResend: Mailer = {
  * mana pun (batas ±500 email/hari). Variabel yang dibaca:
  *   SMTP_GMAIL_USER          — alamat akun Gmail pengirim (wajib)
  *   SMTP_GMAIL_APP_PASSWORD  — App Password 16 huruf (wajib; prasyarat: 2FA akun aktif)
- *   MAIL_DARI_NAMA           — nama tampilan pengirim (opsional, default "Gelanggang")
+ *   MAIL_DARI_NAMA           — nama tampilan pengirim (opsional, default "FieldGo")
  * Gmail memaksa From = alamat akun, jadi From dibentuk dari SMTP_GMAIL_USER + nama tampilan.
  */
 export const mailerGmail: Mailer = {
@@ -50,7 +50,7 @@ export const mailerGmail: Mailer = {
     if (!user || !appPassword) throw new Error('SMTP_GMAIL_USER/SMTP_GMAIL_APP_PASSWORD belum diset di .env');
     const transport = getTransport(user, appPassword);
     await transport.sendMail({
-      from: `"${process.env.MAIL_DARI_NAMA ?? 'Gelanggang'}" <${user}>`,
+      from: `"${process.env.MAIL_DARI_NAMA ?? 'FieldGo'}" <${user}>`,
       to: ke,
       subject: subjek,
       text: teks,

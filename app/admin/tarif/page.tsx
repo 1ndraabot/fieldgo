@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { KelolaTarifView } from '@/components/admin/KelolaTarifView';
 import { getAdminLapangan, getAdminTarif } from '@/lib/demo-fe';
 
-export const metadata: Metadata = { title: 'Gelanggang — Admin · Kelola tarif' };
+export const metadata: Metadata = { title: 'FieldGo — Admin · Kelola tarif' };
 
 const ID = /^\d{1,4}$/;
 

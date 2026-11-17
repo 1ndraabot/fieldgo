@@ -1,6 +1,6 @@
 # Plan: Masuk, Daftar, dan Auth
 
-Spec: `docs/PRD.md` (ACC-01..05, FR-PUB-05, BR-02, 17.2 validasi 3 lapisan, 17.4 keamanan). Desain: board `Gelanggang_Hijau___Redesign.html` (Masuk, Daftar, Verifikasi email).
+Spec: `docs/PRD.md` (ACC-01..05, FR-PUB-05, BR-02, 17.2 validasi 3 lapisan, 17.4 keamanan). Desain: board `FieldGo_Hijau___Redesign.html` (Masuk, Daftar, Verifikasi email).
 Stack: Next.js + TypeScript + Tailwind + Prisma/PostgreSQL (Supabase hanya host Postgres). Data dummy diperbolehkan sementara (email dikirim ke konsol, akun contoh lewat seed).
 
 ## Cakupan (sengaja kecil)

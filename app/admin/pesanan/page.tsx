@@ -3,7 +3,7 @@ import { DaftarPesananView } from '@/components/admin/DaftarPesananView';
 import { getAdminPesanan } from '@/lib/demo-fe';
 import type { StatusPesanan } from '@/lib/slots';
 
-export const metadata: Metadata = { title: 'Gelanggang — Admin · Pesanan' };
+export const metadata: Metadata = { title: 'FieldGo — Admin · Pesanan' };
 
 const SAH: StatusPesanan[] = [
   'menunggu_pembayaran', 'menunggu_verifikasi', 'terkonfirmasi', 'pengajuan_pembatalan',
