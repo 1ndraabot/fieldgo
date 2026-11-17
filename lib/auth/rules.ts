@@ -1,6 +1,6 @@
 // Aturan validasi: fungsi murni, dipakai form di browser DAN server (satu sumber kebenaran).
 export type DaftarInput = { nama: string; email: string; nomorKontak: string; kataSandi: string; setuju: boolean };
-export type MasukInput = { email: string; kataSandi: string };
+export type MasukInput = { email: string; kataSandi: string; peran?: string };
 export type Galat = Record<string, string>;
 
 export const normalisasiEmail = (s: string) => s.trim().toLowerCase();

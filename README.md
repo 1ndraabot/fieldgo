@@ -25,10 +25,12 @@ Akun dummy (dari seed, hanya untuk pengembangan):
 | penyewa@contoh.id | Penyewa123! | terverifikasi |
 | baru@contoh.id | Penyewa123! | belum verifikasi |
 | nonaktif@contoh.id | Penyewa123! | dinonaktifkan |
-| admin@contoh.id | Admin123! | admin (login admin menyusul, `/masuk` menolaknya) |
+| admin@contoh.id | Admin123! | admin — masuk via toggle "Admin" di `/masuk` atau halaman `/admin/masuk` |
+
+Seed awal untuk Supabase (hanya 6 lapangan + akun admin, tanpa pesanan dummy): `npm run db:seed-awal`.
 
 ## Tes
 `npm test`: logika murni dengan `node:test`, tanpa dependensi (Node â‰¥ 22.6): format, status slot, pilihan jam, aturan validasi, hash sandi, rate limiter, cookie, service auth, dan handler HTTP.
 
 ## Belum ada
-Lupa kata sandi, `/admin/masuk`, rate limit berbasis Redis (sekarang in-memory per instance), email sungguhan, worker pembersih sesi/token kedaluwarsa, CHECK/UNIQUE parsial basis data (jam 6â€“24, slot aktif), halaman `/lapangan/{id}`, halaman pemesanan `/pesan` (masih placeholder), dan `/riwayat`.
+Lupa kata sandi, backend panel admin (halaman `/admin/*` masih data dummy, guard sudah aktif), rate limit berbasis Redis (sekarang in-memory per instance), worker pembersih sesi/token kedaluwarsa, CHECK/UNIQUE parsial basis data (jam 6â€“24, slot aktif), halaman `/lapangan/{id}`, halaman pemesanan `/pesan` (masih placeholder), dan `/riwayat`.

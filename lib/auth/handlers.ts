@@ -64,10 +64,11 @@ export function buatHandlers(d: HandlerDeps) {
       const kunci = `${ip(req)}|${normalisasiEmail(v.data.email)}`;
       const batas = d.limiter.masuk.cek(kunci);
       if (!batas.diizinkan) return dibatasi(batas.ulangiDetik);
-      const r = await masuk(d, { email: v.data.email, kataSandi: v.data.kataSandi, peran: 'penyewa' }); // admin: halaman login terpisah
+      const peran = v.data.peran === 'admin' ? 'admin' : 'penyewa'; // hanya dua nilai yang sah
+      const r = await masuk(d, { email: v.data.email, kataSandi: v.data.kataSandi, peran });
       if (!r.ok) return r.kode === 'AKUN_NONAKTIF' ? json(403, { ok: false, kode: r.kode }) : json(401, { ok: false, kode: r.kode });
       d.limiter.masuk.reset(kunci);
-      return json(200, { ok: true, terverifikasi: r.pengguna.emailTerverifikasiPada !== null }, cookieSesi(r.token, SESI_MS / 1000, d.secure));
+      return json(200, { ok: true, terverifikasi: r.pengguna.emailTerverifikasiPada !== null, peran: r.pengguna.peran }, cookieSesi(r.token, SESI_MS / 1000, d.secure));
     }),
 
     keluar: aman(async (req) => {

@@ -12,5 +12,5 @@ export const DaftarSchema = z
   .superRefine(terapkan(validasiDaftar));
 
 export const MasukSchema = z
-  .object({ email: z.string(), kataSandi: z.string() })
+  .object({ email: z.string(), kataSandi: z.string(), peran: z.enum(['penyewa', 'admin']).default('penyewa') })
   .superRefine(terapkan(validasiMasuk));

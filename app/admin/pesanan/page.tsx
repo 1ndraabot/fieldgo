@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { DaftarPesananView } from '@/components/admin/DaftarPesananView';
 import { getAdminPesanan } from '@/lib/demo-fe';
 import type { StatusPesanan } from '@/lib/slots';
+import { wajibAdmin } from '@/lib/auth/session';
 
 export const metadata: Metadata = { title: 'FieldGo — Admin · Pesanan' };
 
@@ -12,6 +13,7 @@ const SAH: StatusPesanan[] = [
 
 // FE dulu: data dummy. Filter status diproses server-side agar pola sama dengan backend nanti.
 export default async function AdminPesanan({ searchParams }: { searchParams: Promise<{ q?: string | string[]; status?: string | string[] }> }) {
+  const pengguna = await wajibAdmin('/admin/pesanan');
   const sp = await searchParams;
   const q = typeof sp.q === 'string' ? sp.q : '';
   const raw = typeof sp.status === 'string' ? sp.status : '';

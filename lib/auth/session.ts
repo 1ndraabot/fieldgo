@@ -18,3 +18,10 @@ export async function wajibPenyewa(kembaliKe: string) {
   if (!p || p.peran !== 'penyewa') redirect(`/masuk?next=${encodeURIComponent(kembaliKe)}`);
   return p;
 }
+
+/** Halaman panel admin (FR-ADM-01): tamu/penyewa diarahkan ke /admin/masuk lalu dikembalikan ke `kembaliKe`. */
+export async function wajibAdmin(kembaliKe: string) {
+  const p = await penggunaSaatIni();
+  if (!p || p.peran !== 'admin') redirect(`/admin/masuk?next=${encodeURIComponent(kembaliKe)}`);
+  return p;
+}
