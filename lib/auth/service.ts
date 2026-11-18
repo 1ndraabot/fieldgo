@@ -14,15 +14,21 @@ export interface AuthStore {
   cariPenggunaById(id: number): Promise<Pengguna | null>;
   /** Melempar EmailSudahAda bila email sudah terdaftar (keunikan dijaga basis data). */
   buatPengguna(d: { nama: string; email: string; kataSandi: string; nomorKontak: string }): Promise<Pengguna>;
-  buatToken(d: { penggunaId: number; jenis: 'verifikasi_email'; tokenHash: string; kedaluwarsaPada: Date }): Promise<void>;
-  batalkanTokenAktif(penggunaId: number, jenis: 'verifikasi_email'): Promise<void>;
+  buatToken(d: { penggunaId: number; jenis: JenisToken; tokenHash: string; kedaluwarsaPada: Date }): Promise<void>;
+  batalkanTokenAktif(penggunaId: number, jenis: JenisToken): Promise<void>;
   /** Atomik: menandai terpakai hanya bila belum terpakai dan belum kedaluwarsa. Mengembalikan pemilik token. */
-  pakaiToken(tokenHash: string, jenis: 'verifikasi_email', now: Date): Promise<number | null>;
+  pakaiToken(tokenHash: string, jenis: JenisToken, now: Date): Promise<number | null>;
   tandaiTerverifikasi(penggunaId: number, now: Date): Promise<void>;
+  /** Ganti hash kata sandi (dipakai reset sandi). */
+  ubahSandi(penggunaId: number, kataSandiHash: string): Promise<void>;
   buatSesi(d: { penggunaId: number; tokenHash: string; kedaluwarsaPada: Date }): Promise<void>;
   cariSesi(tokenHash: string, now: Date): Promise<Pengguna | null>;
   hapusSesi(tokenHash: string): Promise<void>;
+  /** Gugurkan semua sesi pengguna (dipakai setelah reset sandi). */
+  hapusSesiPengguna(penggunaId: number): Promise<void>;
 }
+
+export type JenisToken = 'verifikasi_email' | 'reset_sandi';
 
 export interface Mailer {
   kirim(surat: { ke: string; subjek: string; teks: string }): Promise<void>;
@@ -32,6 +38,7 @@ export type AuthDeps = { store: AuthStore; mailer: Mailer; sekarang: () => Date;
 
 export const SESI_MS = 7 * 24 * 3600_000;
 const TOKEN_VERIFIKASI_MS = 24 * 3600_000;
+const TOKEN_RESET_MS = 1 * 3600_000; // tautan reset sandi lebih pendek: satu jam (FR-ACC-04)
 
 // Hash pura-pura agar login email tak dikenal memakan waktu sama dengan email dikenal.
 let hashPuraPura: Promise<string> | undefined;
@@ -107,4 +114,36 @@ export async function kirimUlangVerifikasi(d: AuthDeps, penggunaId: number): Pro
   if (p.emailTerverifikasiPada) return 'sudah_terverifikasi';
   await kirimTokenVerifikasi(d, p);
   return 'terkirim';
+}
+
+/** Minta tautan reset sandi (FR-ACC-04). Selalu "ok" — jangan membocorkan email mana yang terdaftar (anti-enumeration). */
+export async function lupaSandi(d: AuthDeps, email: string): Promise<{ ok: true }> {
+  const p = await d.store.cariPenggunaByEmail(normalisasiEmail(email));
+  if (!p || p.dinonaktifkanPada) return { ok: true }; // diam: respons identik dengan email tak dikenal
+  await d.store.batalkanTokenAktif(p.id, 'reset_sandi'); // tautan lama gugur
+  const { token, hash } = buatToken();
+  await d.store.buatToken({
+    penggunaId: p.id, jenis: 'reset_sandi', tokenHash: hash,
+    kedaluwarsaPada: new Date(d.sekarang().getTime() + TOKEN_RESET_MS),
+  });
+  try {
+    await d.mailer.kirim({
+      ke: p.email, subjek: 'Reset kata sandi FieldGo',
+      teks: `Halo ${p.nama},\n\nBuka tautan ini untuk mengatur kata sandi baru (berlaku 1 jam, sekali pakai):\n${d.baseUrl}/reset-sandi?token=${token}\n\nBukan kamu yang meminta? Abaikan email ini — kata sandimu tidak berubah.\n`,
+    });
+  } catch (e) {
+    console.error('[auth] gagal mengirim email reset sandi', e);
+  }
+  return { ok: true };
+}
+
+/** Pakai tautan reset: token atomik → ganti sandi → gugurkan semua sesi pengguna. */
+export async function resetSandi(d: AuthDeps, i: { token: string; kataSandi: string }): Promise<'ok' | 'tidak_valid'> {
+  const now = d.sekarang();
+  const id = await d.store.pakaiToken(hashToken(i.token), 'reset_sandi', now);
+  if (id === null) return 'tidak_valid';
+  const kataSandi = await hashPassword(i.kataSandi);
+  await d.store.ubahSandi(id, kataSandi);
+  await d.store.hapusSesiPengguna(id); // semua perangkat ter-logout setelah sandi berganti
+  return 'ok';
 }

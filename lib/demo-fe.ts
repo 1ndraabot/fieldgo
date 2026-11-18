@@ -3,7 +3,10 @@
 // loader basis data sungguhan menyusul per tahap PRD Bagian 12). Konsisten dengan lib/demo.ts.
 import type { Ilustrasi } from './beranda.ts';
 import { tambahHari, wibSekarang } from './format.ts';
+import type { BarisRiwayat, DetailPesanan, EntriRiwayat } from './riwayat/types.ts';
 import type { StatusPesanan } from './slots.ts';
+
+export type { BarisRiwayat, DetailPesanan, EntriRiwayat } from './riwayat/types.ts';
 
 const ilustrasiUntuk = (olahraga: string): Ilustrasi => {
   const n = olahraga.toLowerCase();
@@ -130,13 +133,6 @@ export function getLapanganDetail(id: number, now = new Date()): LapanganDetail 
 
 // ─── Riwayat penyewa (dummy sesi: Rani Putri) ───────────────────────────────
 
-export type BarisRiwayat = {
-  kode: string; lapanganId: number; lapanganNama: string;
-  tanggal: string; jamMulai: number; jamSelesai: number; jumlahJam: number;
-  totalHarga: number; status: StatusPesanan; dibuatPada: Date;
-  batasBayarPada: Date | null; alasanPenolakan: string | null;
-};
-
 export function getRiwayat(now = new Date()): BarisRiwayat[] {
   const hariIni = wibSekarang(now).tanggal;
   const t = (n: number) => tambahHari(hariIni, n);
@@ -156,13 +152,6 @@ export function getRiwayat(now = new Date()): BarisRiwayat[] {
 }
 
 // ─── Detail pesanan + linimasa ──────────────────────────────────────────────
-
-export type EntriRiwayat = { waktu: Date; statusBaru: StatusPesanan; oleh: string; catatan: string | null };
-export type DetailPesanan = BarisRiwayat & {
-  riwayat: EntriRiwayat[];
-  bukti: { namaBerkas: string; diunggahPada: Date } | null;
-  pengajuanBatal: { alasan: string; keadaan: 'menunggu' | 'disetujui' | 'ditolak'; catatanAdmin: string | null } | null;
-};
 
 /** Linimasa status sesuai siklus PRD Bagian 5. */
 function linimasa(b: BarisRiwayat, now: Date): EntriRiwayat[] {

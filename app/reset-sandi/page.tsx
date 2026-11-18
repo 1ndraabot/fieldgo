@@ -18,7 +18,7 @@ export default async function ResetSandi({ searchParams }: { searchParams: Promi
       <main className="flex flex-1 items-start justify-center px-[clamp(16px,4.5vw,64px)] py-14">
         <div className="w-full max-w-[480px] rounded-[32px] border-[1.5px] border-line bg-white p-9 shadow-[0_24px_48px_rgba(8,44,28,.08)]">
           {sah ? (
-            <ResetSandiForm />
+            <ResetSandiForm token={token} />
           ) : (
             <div className="flex flex-col gap-5">
               <Banner nada="merah" ikon="alert">Tautan reset tidak valid atau sudah kedaluwarsa. Minta tautan baru.</Banner>

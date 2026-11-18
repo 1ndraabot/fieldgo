@@ -59,9 +59,11 @@ export function PasswordInput({ id, value, onChange, autoComplete, placeholder, 
   );
 }
 
-export function TombolUtama({ disabled, children }: { disabled?: boolean; children: ReactNode }) {
+export function TombolUtama({ disabled, children, type = 'submit', onClick }: {
+  disabled?: boolean; children: ReactNode; type?: 'submit' | 'button'; onClick?: () => void;
+}) {
   return (
-    <button type="submit" disabled={disabled}
+    <button type={type} onClick={onClick} disabled={disabled}
       className="btn flex h-14 w-full cursor-pointer items-center justify-center gap-2.5 rounded-full border-[1.5px] border-transparent bg-brand px-7 text-base font-bold text-white disabled:cursor-not-allowed disabled:opacity-45">
       {children}
       <span className="-mr-[18px] flex size-9 items-center justify-center rounded-full bg-lime"><Icon name="kanan" size={16} stroke="#0B2B1E" width={2.6} /></span>

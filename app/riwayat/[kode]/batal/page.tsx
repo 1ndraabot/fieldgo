@@ -1,20 +1,26 @@
 import type { Metadata } from 'next';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { BatalForm } from '@/components/riwayat/BatalForm';
-import { DEMO_PENGGUNA } from '@/lib/demo';
-import { getDetailPesanan } from '@/lib/demo-fe';
-import { formatRupiah, labelPanjang } from '@/lib/format';
+import { wajibPenyewa } from '@/lib/auth/session';
+import { formatJam, labelPanjang } from '@/lib/format';
+import { getDetailPesanan } from '@/lib/riwayat/data';
+import { bisaAjukanBatal } from '@/lib/riwayat/rules';
 
 export const metadata: Metadata = { title: 'FieldGo — Ajukan pembatalan' };
+export const dynamic = 'force-dynamic';
 
 const KODE = /^[A-Za-z0-9-]{4,40}$/;
 
-// FE dulu: dummy tanpa guard. Saat backend jadi: wajibPenyewa() + validasi H-1 di server (BR-12, FR-CAN-01).
 export default async function HalamanBatal({ params }: { params: Promise<{ kode: string }> }) {
+  const pengguna = await wajibPenyewa('/riwayat'); // halaman khusus penyewa (FR-PUB-05)
   const { kode } = await params;
   if (!KODE.test(kode)) notFound();
-  const data = getDetailPesanan(kode);
+  const now = new Date();
+  const data = await getDetailPesanan(kode, pengguna.id, now);
   if (!data) notFound();
+
+  // FR-CAN-01: form hanya untuk pesanan Terkonfirmasi sebelum batas H-1; server memeriksa ulang saat kirim.
+  if (!bisaAjukanBatal(data.status, data.tanggal, now)) redirect(`/riwayat/${data.kode}`);
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-[1440px] flex-col bg-white">
@@ -32,8 +38,8 @@ export default async function HalamanBatal({ params }: { params: Promise<{ kode:
           </p>
           <div className="mt-7">
             <BatalForm kode={data.kode} lapanganNama={data.lapanganNama}
-              jadwalLabel={`${labelPanjang(data.tanggal)} · ${String(data.jamMulai).padStart(2, '0')}.00–${String(data.jamSelesai).padStart(2, '0')}.00`}
-              total={data.totalHarga} nama={DEMO_PENGGUNA.nama} kontak={DEMO_PENGGUNA.nomorKontak} />
+              jadwalLabel={`${labelPanjang(data.tanggal)} · ${formatJam(data.jamMulai)}–${formatJam(data.jamSelesai)}`}
+              total={data.totalHarga} nama={pengguna.nama} kontak={pengguna.nomorKontak} />
           </div>
         </div>
       </main>

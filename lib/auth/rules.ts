@@ -43,6 +43,22 @@ export function validasiMasuk(i: MasukInput): Galat {
   return g;
 }
 
+export type LupaInput = { email: string };
+export type ResetInput = { token: string; kataSandi: string };
+
+export function validasiLupa(i: LupaInput): Galat {
+  const e = validasiEmail(i.email);
+  return e ? { email: e } : {};
+}
+
+export function validasiReset(i: ResetInput): Galat {
+  const g: Galat = {};
+  if (!i.token) g.token = 'Tautan tidak lengkap. Minta tautan baru dari halaman lupa kata sandi.';
+  const s = validasiSandi(i.kataSandi);
+  if (s) g.kataSandi = s;
+  return g;
+}
+
 const LABEL = ['Terlalu pendek', 'Lemah', 'Cukup', 'Kuat', 'Sangat kuat'];
 const WARNA = ['#E5484D', '#E5484D', '#F5A524', '#22C06B', '#0E8A4A'];
 /** Skor sama dengan prototipe desain (Daftar). */

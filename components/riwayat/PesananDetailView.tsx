@@ -4,7 +4,7 @@ import { Footer } from '@/components/Footer';
 import { Header } from '@/components/Header';
 import { Icon } from '@/components/icons';
 import { BadgeStatus, STATUS_PESANAN } from '@/components/status-pesanan';
-import type { DetailPesanan } from '@/lib/demo-fe';
+import type { DetailPesanan } from '@/lib/riwayat/types';
 import { formatRupiah, labelDibuat, labelPanjang } from '@/lib/format';
 
 const pad = 'px-[clamp(16px,4.5vw,64px)]';

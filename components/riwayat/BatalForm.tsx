@@ -1,12 +1,21 @@
 'use client';
 
+import Link from 'next/link';
 import { useState, type FormEvent } from 'react';
 import { Banner, Field, TeksInput, TombolUtama } from '@/components/auth/ui';
 import { formatRupiah } from '@/lib/format';
 
 const BANK = ['BCA', 'Mandiri', 'BNI', 'BRI', 'Permata'] as const;
 
-/** Form pengajuan pembatalan (FR-CAN-02). FE dulu: pengiriman ke API pembatalan menyusul (status → Pengajuan pembatalan). */
+const PESAN_GAGAL: Record<string, string> = {
+  LEWAT_BATAS: 'Batas pembatalan sudah terlewati (paling lambat H-1 pukul 23.59 WIB). Pesanan ini berlaku seperti biasa.',
+  SUDAH_DIAJUKAN: 'Pesanan ini sudah pernah punya pengajuan pembatalan. Satu pesanan hanya boleh satu pengajuan.',
+  STATUS_BERUBAH: 'Status pesanan sudah berubah, jadi pengajuan tidak bisa dikirim. Buka detail pesanan untuk melihat status terbaru.',
+  TIDAK_DITEMUKAN: 'Pesanan tidak ditemukan atau bukan milik akunmu.',
+  DIBATASI: 'Terlalu banyak percobaan. Coba lagi beberapa menit lagi.',
+};
+
+/** Form pengajuan pembatalan (FR-CAN-02): server memeriksa status, H-1, dan kepemilikan ulang. */
 export function BatalForm({ kode, lapanganNama, jadwalLabel, total, nama, kontak }: {
   kode: string; lapanganNama: string; jadwalLabel: string; total: number; nama: string; kontak: string;
 }) {
@@ -15,20 +24,35 @@ export function BatalForm({ kode, lapanganNama, jadwalLabel, total, nama, kontak
   const [rekening, setRekening] = useState('');
   const [atasNama, setAtasNama] = useState('');
   const [galat, setGalat] = useState<Record<string, string>>({});
+  const [gagal, setGagal] = useState<string | null>(null);
   const [kirim, setKirim] = useState(false);
   const [sukses, setSukses] = useState(false);
 
-  function ajukan(e: FormEvent) {
+  async function ajukan(e: FormEvent) {
     e.preventDefault();
     const g: Record<string, string> = {};
     if (alasan.trim().length < 10) g.alasan = 'Tuliskan alasan minimal 10 karakter agar admin dapat menilai.';
     if (!rekening.trim()) g.rekening = 'Nomor rekening wajib diisi untuk pengembalian dana.';
     if (!atasNama.trim()) g.atasNama = 'Nama pemilik rekening wajib diisi.';
     setGalat(g);
+    setGagal(null);
     if (Object.keys(g).length > 0) return;
+
     setKirim(true);
-    // FE dulu: POST /api/pesanan/{kode}/batal-ajuan menyusul; slot tetap terisi sampai keputusan admin (FR-CAN-03).
-    setTimeout(() => { setKirim(false); setSukses(true); }, 600);
+    try {
+      const res = await fetch(`/api/pesanan/${encodeURIComponent(kode)}/batal-ajuan`, {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ alasan, namaBank: bank, nomorRekening: rekening, atasNama }),
+      });
+      const b = await res.json().catch(() => null);
+      if (b?.ok) { setSukses(true); return; }
+      if (b?.kode === 'VALIDASI') { setGalat(b.galat ?? {}); return; }
+      setGagal(PESAN_GAGAL[b?.kode as string] ?? 'Pengajuan belum bisa dikirim. Coba lagi sebentar lagi.');
+    } catch {
+      setGagal('Belum bisa terhubung ke server. Coba lagi sebentar lagi.');
+    } finally {
+      setKirim(false);
+    }
   }
 
   if (sukses) {
@@ -37,13 +61,19 @@ export function BatalForm({ kode, lapanganNama, jadwalLabel, total, nama, kontak
         <Banner nada="teal" ikon="check" role="status">
           Pengajuan pembatalan untuk <strong>{kode}</strong> terkirim. Status pesanan menjadi <strong>Pengajuan pembatalan</strong>; slot tetap terisi sampai admin memutuskan (FR-CAN-03).
         </Banner>
-        <p className="text-[13px] font-medium text-muted">Tampilan frontend — pengiriman ke backend menyusul. Keputusan dan nominal refund diputuskan admin (BR-13).</p>
+        <Link href={`/riwayat/${encodeURIComponent(kode)}`}
+          className="btn flex h-14 items-center justify-center rounded-full bg-brand px-7 text-base font-bold text-white no-underline">
+          Lihat detail pesanan
+        </Link>
+        <p className="text-center text-[13px] font-medium text-muted">Keputusan dan nominal refund ditetapkan admin (BR-13).</p>
       </div>
     );
   }
 
   return (
     <form onSubmit={ajukan} noValidate className="flex flex-col gap-5">
+      {gagal && <Banner nada="merah" ikon="alert">{gagal}</Banner>}
+
       <div className="rounded-[22px] border-[1.5px] border-line bg-mist px-5 py-4">
         <div className="text-[13px] font-bold uppercase tracking-wider text-muted">Pesanan yang diajukan</div>
         <div className="mt-1.5 font-display text-lg font-bold">{kode} · {lapanganNama}</div>

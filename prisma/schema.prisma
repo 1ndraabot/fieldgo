@@ -39,6 +39,14 @@ enum StatusVerifikasi {
   @@map("status_verifikasi")
 }
 
+enum StatusPengajuan {
+  menunggu
+  disetujui
+  ditolak
+
+  @@map("status_pengajuan")
+}
+
 enum StatusPesanan {
   menunggu_pembayaran
   menunggu_verifikasi
@@ -169,6 +177,7 @@ model Pesanan {
   slot            SlotPesanan[]
   pembayaran      Pembayaran?
   riwayat         RiwayatStatus[]
+  pengajuanPembatalan PengajuanPembatalan?
 
   @@index([penggunaId, dibuatPada])
   @@index([status, batasBayarPada])
@@ -233,6 +242,28 @@ model Pembayaran {
   pesanan          Pesanan          @relation(fields: [pesananId], references: [id])
 
   @@map("pembayaran")
+}
+
+// Pengajuan pembatalan pesanan Terkonfirmasi (FR-CAN-02/03). Satu per pesanan: UNIQUE(pesanan_id).
+// Slot tetap aktif sampai admin memutuskan; keputusan mencatat catatan, nominal refund, dan pemutus.
+model PengajuanPembatalan {
+  id             Int             @id @default(autoincrement())
+  pesananId      Int             @unique @map("pesanan_id")
+  namaPemesan    String          @map("nama_pemesan")
+  kontak         String
+  alasan         String
+  namaBank       String          @map("nama_bank")
+  nomorRekening  String          @map("nomor_rekening")
+  atasNama       String          @map("atas_nama")
+  diajukanPada   DateTime        @map("diajukan_pada")
+  status         StatusPengajuan @default(menunggu)
+  catatanAdmin   String?         @map("catatan_admin")
+  nominalRefund  Int?            @map("nominal_refund")
+  diputuskanOleh Int?            @map("diputuskan_oleh")
+  diputuskanPada DateTime?       @map("diputuskan_pada")
+  pesanan        Pesanan         @relation(fields: [pesananId], references: [id])
+
+  @@map("pengajuan_pembatalan")
 }
 
 model RiwayatStatus {

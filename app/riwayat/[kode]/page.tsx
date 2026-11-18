@@ -1,26 +1,25 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { PesananDetailView } from '@/components/riwayat/PesananDetailView';
-import { DEMO_PENGGUNA } from '@/lib/demo';
-import { getDetailPesanan } from '@/lib/demo-fe';
-import { wibSekarang } from '@/lib/format';
+import { wajibPenyewa } from '@/lib/auth/session';
+import { getDetailPesanan } from '@/lib/riwayat/data';
+import { bisaAjukanBatal } from '@/lib/riwayat/rules';
 
 export const metadata: Metadata = { title: 'FieldGo — Detail pesanan' };
 export const dynamic = 'force-dynamic';
 
 const KODE = /^[A-Za-z0-9-]{4,40}$/;
 
-// FE dulu: dummy tanpa guard. Saat backend jadi: wajibPenyewa() + getDetailPesanan(kode, pengguna.id) —
-// pesanan milik orang lain = notFound() (PRD 17.4).
 export default async function DetailPesanan({ params }: { params: Promise<{ kode: string }> }) {
+  const pengguna = await wajibPenyewa('/riwayat'); // halaman khusus penyewa (FR-PUB-05)
   const { kode } = await params;
   if (!KODE.test(kode)) notFound();
-  const data = getDetailPesanan(kode);
+  const now = new Date();
+  const data = await getDetailPesanan(kode, pengguna.id, now); // milik orang lain = tidak ada (PRD 17.4)
   if (!data) notFound();
 
-  // Batas pengajuan pembatalan: paling lambat 23.59 hari sebelum tanggal main (H-1, BR-12).
-  const hariIni = wibSekarang(new Date()).tanggal;
-  const bisaAjukanBatal = data.tanggal > hariIni; // FE dulu: H-1 penuh; perhitungan detik 23.59 di server menyusul
+  // Batas pengajuan pembatalan: paling lambat 23.59 WIB hari sebelum tanggal main (H-1, BR-12).
+  const bisaBatal = bisaAjukanBatal(data.status, data.tanggal, now);
 
-  return <PesananDetailView pengguna={{ nama: DEMO_PENGGUNA.nama }} data={data} bisaAjukanBatal={bisaAjukanBatal} />;
+  return <PesananDetailView pengguna={{ nama: pengguna.nama }} data={data} bisaAjukanBatal={bisaBatal} />;
 }

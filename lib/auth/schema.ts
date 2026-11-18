@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { validasiDaftar, validasiMasuk } from './rules.ts';
+import { validasiDaftar, validasiLupa, validasiMasuk, validasiReset } from './rules.ts';
 
 // Zod hanya membungkus parse/tipe; aturan sebenarnya ada di rules.ts (dipakai juga oleh form di browser).
 const terapkan = <T extends Record<string, unknown>>(aturan: (i: T) => Record<string, string>) =>
@@ -14,3 +14,11 @@ export const DaftarSchema = z
 export const MasukSchema = z
   .object({ email: z.string(), kataSandi: z.string(), peran: z.enum(['penyewa', 'admin']).default('penyewa') })
   .superRefine(terapkan(validasiMasuk));
+
+export const LupaSchema = z
+  .object({ email: z.string() })
+  .superRefine(terapkan(validasiLupa));
+
+export const ResetSchema = z
+  .object({ token: z.string(), kataSandi: z.string() })
+  .superRefine(terapkan(validasiReset));
