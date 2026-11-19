@@ -36,6 +36,13 @@ test('bisaAjukanBatal: hanya Terkonfirmasi dan paling lambat H-1 (BR-12)', () =>
   assert.equal(bisaAjukanBatal('pengajuan_pembatalan', DUA_HARI, NOW), false);
 });
 
+test('bisaAjukanBatal: batas hari mengikuti Pengaturan (H-2 menolak H-1)', () => {
+  assert.equal(bisaAjukanBatal('terkonfirmasi', BESOK, NOW, 2), false); // H-1 sudah lewat batas 2 hari
+  assert.equal(bisaAjukanBatal('terkonfirmasi', DUA_HARI, NOW, 2), true); // H-2 masih boleh
+  assert.equal(bisaAjukanBatal('terkonfirmasi', '2026-11-21', NOW, 3), true); // H-3
+  assert.equal(bisaAjukanBatal('terkonfirmasi', '2026-11-21', NOW, 7), false); // H-3 < H-7
+});
+
 test('validasiAjuan: alasan minimal 10 karakter dan data rekening wajib (FR-CAN-02)', () => {
   assert.deepEqual(validasiAjuan({ alasan: 'Turnamen dibatalkan.', namaBank: 'BCA', nomorRekening: '1234 567 890', atasNama: 'Rani Putri' }), {});
   assert.ok(validasiAjuan({ alasan: 'pendek', namaBank: 'BCA', nomorRekening: '1234', atasNama: 'Rani' }).alasan);

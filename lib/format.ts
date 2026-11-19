@@ -46,6 +46,38 @@ export function formatHitungMundur(detik: number): string {
   return `${String(Math.floor(d / 60)).padStart(2, '0')}:${String(d % 60).padStart(2, '0')}`;
 }
 
+/** Tanggal `YYYY-MM-01` pada bulan berjalan WIB (untuk filter rekap). */
+export function awalBulanWib(now: Date): string {
+  return wibSekarang(now).tanggal.slice(0, 8) + '01';
+}
+
+/** Tanggal terakhir bulan berjalan WIB. */
+export function akhirBulanWib(now: Date): string {
+  const t = wibSekarang(now).tanggal;
+  const d = new Date(t.slice(0, 7) + '-01T00:00:00Z');
+  d.setUTCMonth(d.getUTCMonth() + 1);
+  d.setUTCDate(0);
+  return d.toISOString().slice(0, 10);
+}
+
+/** Label periode: "November 2026" bila satu bulan penuh, selain itu rentang tanggal. */
+export function labelPeriode(dari: string, sampai: string): string {
+  const a = utcDate(dari);
+  const b = utcDate(sampai);
+  const akhirBulan = new Date(Date.UTC(b.getUTCFullYear(), b.getUTCMonth() + 1, 0)).getUTCDate();
+  const satuBulan = a.getUTCFullYear() === b.getUTCFullYear()
+    && a.getUTCMonth() === b.getUTCMonth()
+    && a.getUTCDate() === 1
+    && b.getUTCDate() === akhirBulan;
+  if (satuBulan) return `${BULAN[a.getUTCMonth()]} ${a.getUTCFullYear()}`;
+  const kiri = `${a.getUTCDate()} ${BULAN[a.getUTCMonth()].slice(0, 3)} ${a.getUTCFullYear()}`;
+  const kanan = `${b.getUTCDate()} ${BULAN[b.getUTCMonth()].slice(0, 3)} ${b.getUTCFullYear()}`;
+  return `${kiri} – ${kanan}`;
+}
+
+/** Rentang jam ringkas, mis. "20.00–22.00". */
+export const rentangJam = (mulai: number, selesai: number): string => `${formatJam(mulai)}–${formatJam(selesai)}`;
+
 /** Waktu dibuat untuk tampilan, mis. "4 Nov 2026, 12.00 WIB". */
 export function labelDibuat(d: Date): string {
   const w = new Date(d.getTime() + 7 * 3600_000); // WIB = UTC+7

@@ -8,14 +8,14 @@ import { formatRupiah } from '@/lib/format';
 const BANK = ['BCA', 'Mandiri', 'BNI', 'BRI', 'Permata'] as const;
 
 const PESAN_GAGAL: Record<string, string> = {
-  LEWAT_BATAS: 'Batas pembatalan sudah terlewati (paling lambat H-1 pukul 23.59 WIB). Pesanan ini berlaku seperti biasa.',
+  LEWAT_BATAS: 'Batas pembatalan sudah terlewati. Pesanan ini berlaku seperti biasa.',
   SUDAH_DIAJUKAN: 'Pesanan ini sudah pernah punya pengajuan pembatalan. Satu pesanan hanya boleh satu pengajuan.',
   STATUS_BERUBAH: 'Status pesanan sudah berubah, jadi pengajuan tidak bisa dikirim. Buka detail pesanan untuk melihat status terbaru.',
   TIDAK_DITEMUKAN: 'Pesanan tidak ditemukan atau bukan milik akunmu.',
   DIBATASI: 'Terlalu banyak percobaan. Coba lagi beberapa menit lagi.',
 };
 
-/** Form pengajuan pembatalan (FR-CAN-02): server memeriksa status, H-1, dan kepemilikan ulang. */
+/** Form pengajuan pembatalan (FR-CAN-02): server memeriksa status, batas pembatalan, dan kepemilikan ulang. */
 export function BatalForm({ kode, lapanganNama, jadwalLabel, total, nama, kontak }: {
   kode: string; lapanganNama: string; jadwalLabel: string; total: number; nama: string; kontak: string;
 }) {

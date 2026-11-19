@@ -1,0 +1,157 @@
+import type { StatusPesanan } from '../slots.ts';
+import type { GatewayProvider, NotifikasiGateway, StatusBayar, TransaksiGateway } from './types.ts';
+
+export type PesananGateway = {
+  id: number;
+  kode: string;
+  penggunaId: number;
+  status: StatusPesanan;
+  totalHarga: number;
+  batasBayarPada: Date;
+  lapanganNama: string;
+  namaPenyewa: string;
+  email: string;
+  slot: { jam: number; hargaPerJam: number }[];
+};
+
+export type TransaksiTersimpan = {
+  orderId: string;
+  token: string | null;
+  redirectUrl: string;
+  status: StatusBayar;
+  kedaluwarsaPada: Date | null;
+};
+
+export type HasilNotifikasi =
+  | 'ok'
+  | 'duplikat'
+  | 'tidak_ditemukan'
+  | 'review_nominal'
+  | 'review_telat'
+  | 'review_status'
+  | 'perlu_tinjau'
+  | 'kedaluwarsa'
+  | 'gagal'
+  | 'pending'
+  | 'refund'
+  | 'abaikan';
+
+export type StatusPesananGateway = {
+  status: StatusPesanan;
+  batasBayarPada: Date;
+  transaksi: { status: StatusBayar; dibayarPada: Date | null } | null;
+};
+
+export interface GatewayStore {
+  cariPesananMilik(kode: string, penggunaId: number): Promise<PesananGateway | null>;
+  transaksiAktif(pesananId: number, now: Date): Promise<TransaksiTersimpan | null>;
+  hitungPercobaan(pesananId: number): Promise<number>;
+  simpanTransaksi(d: {
+    pesananId: number;
+    provider: string;
+    orderId: string;
+    jumlah: number;
+    token: string | null;
+    redirectUrl: string;
+    kedaluwarsaPada: Date;
+  }): Promise<TransaksiTersimpan>;
+  statusPesanan(kode: string, penggunaId: number): Promise<StatusPesananGateway | null>;
+  prosesNotifikasi(d: NotifikasiGateway & { provider: string; now: Date }): Promise<HasilNotifikasi>;
+}
+
+export type GatewayDeps = {
+  store: GatewayStore;
+  gateway: GatewayProvider;
+  sekarang: () => Date;
+  baseUrl: string;
+  /** Metode pembayaran aktif dari Pengaturan; kosong = semua metode akun gateway. */
+  metodeAktif?: () => Promise<string[]>;
+};
+
+export type HasilBuat =
+  | { ok: true; transaksi: TransaksiGateway }
+  | { ok: false; kode: 'TIDAK_DITEMUKAN' | 'STATUS_BERUBAH' | 'KEDALUWARSA' | 'BATAS_PERCOBAAN' | 'GATEWAY_GAGAL' };
+
+const MAKS_PERCOBAAN = 5;
+
+function orderIdUntuk(kode: string, percobaan: number): string {
+  return percobaan === 0 ? kode : `${kode}-R${percobaan + 1}`;
+}
+
+/**
+ * Membuat transaksi gateway dari data pesanan di server. Nominal dan item tidak pernah
+ * berasal dari klien. Bila masih ada transaksi pending yang berlaku, transaksi itu
+ * dipakai ulang agar klik ganda tidak membuat tagihan ganda.
+ */
+export async function buatTransaksi(d: GatewayDeps, i: { penggunaId: number; kode: string }): Promise<HasilBuat> {
+  const now = d.sekarang();
+  const p = await d.store.cariPesananMilik(i.kode, i.penggunaId);
+  if (!p) return { ok: false, kode: 'TIDAK_DITEMUKAN' };
+  if (p.status !== 'menunggu_pembayaran') return { ok: false, kode: 'STATUS_BERUBAH' };
+  if (p.batasBayarPada.getTime() <= now.getTime()) return { ok: false, kode: 'KEDALUWARSA' };
+
+  const aktif = await d.store.transaksiAktif(p.id, now);
+  if (aktif) {
+    return {
+      ok: true,
+      transaksi: {
+        orderId: aktif.orderId,
+        token: aktif.token,
+        redirectUrl: aktif.redirectUrl,
+        kedaluwarsaPada: aktif.kedaluwarsaPada ?? p.batasBayarPada,
+      },
+    };
+  }
+
+  const percobaan = await d.store.hitungPercobaan(p.id);
+  if (percobaan >= MAKS_PERCOBAAN) return { ok: false, kode: 'BATAS_PERCOBAAN' };
+
+  const orderId = orderIdUntuk(p.kode, percobaan);
+  let transaksi: TransaksiGateway;
+  try {
+    transaksi = await d.gateway.buatTransaksi({
+      orderId,
+      kode: p.kode,
+      jumlah: p.totalHarga,
+      namaPenyewa: p.namaPenyewa,
+      email: p.email,
+      itemDetails: p.slot.map((s) => ({
+        id: `${orderId}-${s.jam}`,
+        nama: `${p.lapanganNama} ${String(s.jam).padStart(2, '0')}.00`,
+        harga: s.hargaPerJam,
+        jumlah: 1,
+      })),
+      kedaluwarsaPada: p.batasBayarPada,
+      selesaiUrl: `${d.baseUrl}/pesanan/${encodeURIComponent(p.kode)}/bayar`,
+      metodeAktif: d.metodeAktif ? await d.metodeAktif() : [],
+    });
+  } catch (e) {
+    console.error('[gateway] gagal membuat transaksi', e);
+    return { ok: false, kode: 'GATEWAY_GAGAL' };
+  }
+
+  const tersimpan = await d.store.simpanTransaksi({
+    pesananId: p.id,
+    provider: d.gateway.nama,
+    orderId: transaksi.orderId,
+    jumlah: p.totalHarga,
+    token: transaksi.token,
+    redirectUrl: transaksi.redirectUrl,
+    kedaluwarsaPada: transaksi.kedaluwarsaPada,
+  });
+
+  // Pakai hasil simpan: pada klik bersamaan, panggilan kedua mendapat transaksi yang sama.
+  return {
+    ok: true,
+    transaksi: {
+      orderId: tersimpan.orderId,
+      token: tersimpan.token,
+      redirectUrl: tersimpan.redirectUrl,
+      kedaluwarsaPada: tersimpan.kedaluwarsaPada ?? transaksi.kedaluwarsaPada,
+    },
+  };
+}
+
+export async function prosesNotifikasi(d: GatewayDeps, notif: NotifikasiGateway): Promise<HasilNotifikasi> {
+  return d.store.prosesNotifikasi({ ...notif, provider: d.gateway.nama, now: d.sekarang() });
+}

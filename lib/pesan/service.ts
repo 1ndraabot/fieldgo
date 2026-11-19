@@ -23,7 +23,12 @@ export interface PesanStore {
   buat(d: BuatPesanan): Promise<{ kode: string } | null>;
 }
 
-export type PesanDeps = { store: PesanStore; sekarang: () => Date };
+export type PesanDeps = {
+  store: PesanStore;
+  sekarang: () => Date;
+  /** Batas bayar global (jam) dari Pengaturan; kosong = 24 jam. */
+  batasBayarJam?: () => Promise<number>;
+};
 
 export type HasilPesan =
   | { ok: true; kode: string }
@@ -52,11 +57,12 @@ export async function pesan(d: PesanDeps, i: PesanInput & { penggunaId: number; 
   }
   if (jam.some((j) => bentrok.has(j))) return { ok: false, kode: 'TIDAK_TERSEDIA' };
 
+  const batasJam = d.batasBayarJam ? await d.batasBayarJam() : 24;
   const hasil = await d.store.buat({
     kode: kodePesanan(), penggunaId: i.penggunaId, lapanganId: i.lapanganId, tanggal: i.tanggal,
     mulai: i.mulai, selesai: i.selesai, jumlahJam: jam.length,
     totalHarga: rincian.reduce((n, r) => n + r.harga, 0),
-    batasBayarPada: batasBayar(now, i.tanggal, i.mulai), now,
+    batasBayarPada: batasBayar(now, i.tanggal, i.mulai, batasJam), now,
     slot: rincian.map((r) => ({ jam: r.jam, hargaPerJam: r.harga })),
   });
   // Store memeriksa ulang di dalam transaksi: permintaan bersamaan hanya satu yang menang (BR-01).

@@ -17,7 +17,12 @@ export interface RiwayatStore {
   }): Promise<boolean>;
 }
 
-export type RiwayatDeps = { store: RiwayatStore; sekarang: () => Date };
+export type RiwayatDeps = {
+  store: RiwayatStore;
+  sekarang: () => Date;
+  /** Batas pembatalan (hari sebelum main) dari Pengaturan; kosong = H-1. */
+  batasPembatalanHari?: () => Promise<number>;
+};
 
 export type HasilAjuan =
   | { ok: true }
@@ -37,7 +42,8 @@ export async function ajukanPembatalan(
   if (p.status !== 'terkonfirmasi') return { ok: false, kode: 'STATUS_BERUBAH' }; // hanya pesanan Terkonfirmasi (BR-12)
 
   const now = d.sekarang();
-  if (!bisaAjukanBatal(p.status, p.tanggal, now)) return { ok: false, kode: 'LEWAT_BATAS' }; // H-1 pukul 23.59 WIB
+  const batasHari = d.batasPembatalanHari ? await d.batasPembatalanHari() : 1;
+  if (!bisaAjukanBatal(p.status, p.tanggal, now, batasHari)) return { ok: false, kode: 'LEWAT_BATAS' }; // H-N pukul 23.59 WIB
 
   const galat = validasiAjuan(i.ajuan);
   if (Object.keys(galat).length) return { ok: false, kode: 'VALIDASI', galat };

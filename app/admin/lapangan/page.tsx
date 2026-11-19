@@ -1,12 +1,23 @@
 import type { Metadata } from 'next';
 import { KelolaLapanganView } from '@/components/admin/KelolaLapanganView';
-import { getAdminLapangan } from '@/lib/demo-fe';
+import { getDaftarLapangan, getLapanganEdit, getMasterLapangan, type LapanganEdit } from '@/lib/admin/lapangan/data';
 import { wajibAdmin } from '@/lib/auth/session';
 
 export const metadata: Metadata = { title: 'FieldGo — Admin · Kelola lapangan' };
+export const dynamic = 'force-dynamic';
 
-// FE dulu: data dummy. CRUD sungguhan (FR-ADM-02) menyusul dengan otorisasi admin di server (PRD 17.4).
 export default async function AdminLapangan() {
   await wajibAdmin('/admin/lapangan');
-  return <KelolaLapanganView daftar={getAdminLapangan()} />;
+  const daftar = await getDaftarLapangan();
+  const [master, detail] = await Promise.all([
+    getMasterLapangan(),
+    Promise.all(daftar.map((l) => getLapanganEdit(l.id))),
+  ]);
+  return (
+    <KelolaLapanganView
+      daftar={daftar}
+      master={master}
+      detail={detail.filter((d): d is LapanganEdit => d !== null)}
+    />
+  );
 }

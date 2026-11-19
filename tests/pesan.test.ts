@@ -65,6 +65,15 @@ test('batasBayar = min(dibuat + 24 jam, jam mulai main) dalam WIB (BR-07)', () =
   assert.equal(batasBayar(malam, '2026-11-19', 8).toISOString(), '2026-11-19T01:00:00.000Z');
 });
 
+test('batasBayar: batas jam dari Pengaturan tetap tidak melewati jam mulai main (BR-07)', () => {
+  // 09.00 WIB + 1 jam, jauh sebelum main dua hari lagi.
+  assert.equal(batasBayar(NOW, '2026-11-20', 8, 1).toISOString(), '2026-11-18T03:00:00.000Z');
+  // Batas 72 jam tetapi main besok 08.00: jam main yang menang.
+  assert.equal(batasBayar(NOW, '2026-11-19', 8, 72).toISOString(), '2026-11-19T01:00:00.000Z');
+  // Main hari ini 10.00 WIB (03.00Z) lebih dekat daripada +72 jam.
+  assert.equal(batasBayar(NOW, '2026-11-18', 10, 72).toISOString(), '2026-11-18T03:00:00.000Z');
+});
+
 test('validasiPesan: lapangan, tanggal lampau, jam sudah lewat, tutup, di luar operasional, tarif bolong', () => {
   const i = { lapanganId: 1, tanggal: JUMAT, mulai: 17, selesai: 19 };
   assert.deepEqual(validasiPesan(i, LAPANGAN, NOW), {});
@@ -79,6 +88,16 @@ test('validasiPesan: lapangan, tanggal lampau, jam sudah lewat, tutup, di luar o
   assert.ok(validasiPesan({ ...i, mulai: 4, selesai: 6 }, LAPANGAN, NOW).jam); // mulai sebelum buka
   const tanpaTarif: LapanganPesan = { ...LAPANGAN, tarif: [TARIF[1]] }; // hanya 17-24
   assert.match(validasiPesan({ ...i, mulai: 16, selesai: 18 }, tanpaTarif, NOW).jam ?? '', /tarif/);
+});
+
+test('pesan: batas bayar memakai nilai Pengaturan yang diberikan (bukan hardcode 24 jam)', async () => {
+  const s = buatPesanStore();
+  const r = await pesan(
+    { store: s.store, sekarang: () => NOW, batasBayarJam: async () => 1 },
+    { penggunaId: 7, terverifikasi: true, lapanganId: 1, tanggal: JUMAT, mulai: 17, selesai: 19 },
+  );
+  assert.ok(r.ok);
+  assert.equal(s.tersimpan[0].batasBayarPada.toISOString(), '2026-11-18T03:00:00.000Z'); // 09.00 + 1 jam WIB
 });
 
 test('pesan: akun belum terverifikasi ditolak (BR-02)', async () => {

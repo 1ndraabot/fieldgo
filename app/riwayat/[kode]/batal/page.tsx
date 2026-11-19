@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound, redirect } from 'next/navigation';
 import { BatalForm } from '@/components/riwayat/BatalForm';
+import { bacaPengaturan } from '@/lib/admin/pengaturan/data';
 import { wajibPenyewa } from '@/lib/auth/session';
 import { formatJam, labelPanjang } from '@/lib/format';
 import { getDetailPesanan } from '@/lib/riwayat/data';
@@ -19,8 +20,8 @@ export default async function HalamanBatal({ params }: { params: Promise<{ kode:
   const data = await getDetailPesanan(kode, pengguna.id, now);
   if (!data) notFound();
 
-  // FR-CAN-01: form hanya untuk pesanan Terkonfirmasi sebelum batas H-1; server memeriksa ulang saat kirim.
-  if (!bisaAjukanBatal(data.status, data.tanggal, now)) redirect(`/riwayat/${data.kode}`);
+  // FR-CAN-01: form hanya untuk pesanan Terkonfirmasi sebelum batas pembatalan; server memeriksa ulang saat kirim.
+  if (!bisaAjukanBatal(data.status, data.tanggal, now, (await bacaPengaturan()).batasPembatalanHari)) redirect(`/riwayat/${data.kode}`);
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-[1440px] flex-col bg-white">
@@ -33,7 +34,7 @@ export default async function HalamanBatal({ params }: { params: Promise<{ kode:
             Ajukan <span className="text-brand-2">pembatalan</span>
           </h1>
           <p className="mt-3 text-[15px] leading-relaxed text-muted">
-            Pengajuan hanya untuk pesanan Terkonfirmasi sebelum batas H-1. Setelah dikirim, slot tetap terisi
+            Pengajuan hanya untuk pesanan Terkonfirmasi sebelum batas pembatalan. Setelah dikirim, slot tetap terisi
             sampai admin memutuskan (FR-CAN-03).
           </p>
           <div className="mt-7">

@@ -1,10 +1,15 @@
 import { auth } from '../auth/deps.ts';
 import { buatLimiter } from '../auth/ratelimit.ts';
+import { bacaPengaturan } from '../admin/pengaturan/data.ts';
 import { buatHandlersRiwayat } from './handlers.ts';
 import { prismaRiwayatStore } from './prisma-store.ts';
 import { AjuanSchema } from './schema.ts';
 
-export const riwayatDeps = { store: prismaRiwayatStore, sekarang: () => new Date() };
+export const riwayatDeps = {
+  store: prismaRiwayatStore,
+  sekarang: () => new Date(),
+  batasPembatalanHari: async () => (await bacaPengaturan()).batasPembatalanHari,
+};
 
 export const handlersRiwayat = buatHandlersRiwayat({
   ...riwayatDeps,

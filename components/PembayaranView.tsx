@@ -3,22 +3,23 @@ import type { ReactNode } from 'react';
 import { Header } from '@/components/Header';
 import { Icon, type IconName } from '@/components/icons';
 import { Banner } from '@/components/auth/ui';
-import { BuktiForm } from '@/components/pembayaran/BuktiForm';
+import { BatalkanPesanan } from '@/components/pembayaran/BatalkanPesanan';
+import { BayarSekarang } from '@/components/pembayaran/BayarSekarang';
 import { HitungMundur } from '@/components/pembayaran/HitungMundur';
-import { SalinRekening } from '@/components/pembayaran/SalinRekening';
+import { StatusPembayaran } from '@/components/pembayaran/StatusPembayaran';
 import { formatJam, formatRupiah, labelDibuat, labelPanjang } from '@/lib/format';
+import type { HalamanBayarGateway } from '@/lib/gateway/data';
 import { labelBatasBayar } from '@/lib/jadwal';
-import type { HalamanBayar } from '@/lib/pembayaran/data';
 import { langkahStepper, tampilDari, type Tampil } from '@/lib/pembayaran/tampil';
 
 const JUDUL: Record<Tampil, [string, string]> = {
-  bayar: ['Selesaikan', 'pembayaran'], verifikasi: ['Bukti', 'terkirim'], terkonfirmasi: ['Pesanan', 'terkonfirmasi'],
-  ditolak: ['Bukti', 'ditolak'], dibatalkan: ['Pesanan', 'dibatalkan'], kedaluwarsa: ['Pesanan', 'kedaluwarsa'],
+  bayar: ['Selesaikan', 'pembayaran'], verifikasi: ['Pembayaran', 'diperiksa'], terkonfirmasi: ['Pesanan', 'terkonfirmasi'],
+  ditolak: ['Pesanan', 'ditolak'], dibatalkan: ['Pesanan', 'dibatalkan'], kedaluwarsa: ['Pesanan', 'kedaluwarsa'],
   selesai: ['Pesanan', 'selesai'], pengajuan: ['Pembatalan', 'diajukan'],
 };
 const BADGE: Record<Tampil, { teks: string; kelas: string; titik: string }> = {
   bayar: { teks: 'Menunggu pembayaran', kelas: 'bg-[#FFF1D6] text-[#7A4B00]', titik: 'bg-[#F5A524]' },
-  verifikasi: { teks: 'Menunggu verifikasi', kelas: 'bg-[#E6FBF7] text-[#0B5E52]', titik: 'bg-[#2DD4BF]' },
+  verifikasi: { teks: 'Pembayaran diperiksa', kelas: 'bg-[#FFF1D6] text-[#7A4B00]', titik: 'bg-[#F5A524]' },
   terkonfirmasi: { teks: 'Terkonfirmasi', kelas: 'bg-mint text-[#0A6B3A]', titik: 'bg-brand' },
   ditolak: { teks: 'Ditolak', kelas: 'bg-[#FDE4E5] text-[#7A1519]', titik: 'bg-[#E5484D]' },
   dibatalkan: { teks: 'Dibatalkan', kelas: 'bg-[#E3EAE6] text-[#4F6358]', titik: 'bg-[#8FA398]' },
@@ -26,15 +27,15 @@ const BADGE: Record<Tampil, { teks: string; kelas: string; titik: string }> = {
   selesai: { teks: 'Selesai', kelas: 'bg-[#E3EAE6] text-[#4F6358]', titik: 'bg-[#8FA398]' },
   pengajuan: { teks: 'Pengajuan pembatalan', kelas: 'bg-[#FFF1D6] text-[#7A4B00]', titik: 'bg-[#F5A524]' },
 };
-const LABEL_LANGKAH = ['Pilih slot', 'Bayar', 'Verifikasi admin'];
+const LABEL_LANGKAH = ['Pilih slot', 'Bayar', 'Selesai'];
 
 function pesanStatus(t: Tampil, alasan: string | null): { ikon: IconName; ikonBg: string; ikonWarna: string; pesan: string; cta: [string, string] } {
   const jadwal: [string, string] = ['Lihat jadwal saya', '/jadwal-saya'];
   const ulang: [string, string] = ['Pesan ulang', '/#lapangan'];
   switch (t) {
-    case 'verifikasi': return { ikon: 'clock', ikonBg: '#E6FBF7', ikonWarna: '#0B5E52', pesan: 'Admin sedang memeriksa bukti transfermu. Setelah disetujui, jadwal ini tampil sebagai Terkonfirmasi di Jadwal saya.', cta: jadwal };
-    case 'terkonfirmasi': return { ikon: 'check', ikonBg: '#0E8A4A', ikonWarna: '#FFFFFF', pesan: 'Pembayaranmu sudah diverifikasi. Sampai jumpa di lapangan.', cta: jadwal };
-    case 'ditolak': return { ikon: 'cancel', ikonBg: '#FDE4E5', ikonWarna: '#B42328', pesan: `Bukti transfer dinyatakan tidak valid dan bersifat final.${alasan ? ` Alasan: ${alasan}.` : ''} Silakan pesan ulang.`, cta: ulang };
+    case 'verifikasi': return { ikon: 'clock', ikonBg: '#FFF1D6', ikonWarna: '#7A4B00', pesan: 'Pembayaranmu tercatat dan sedang ditinjau admin. Status akan diperbarui di halaman ini.', cta: jadwal };
+    case 'terkonfirmasi': return { ikon: 'check', ikonBg: '#0E8A4A', ikonWarna: '#FFFFFF', pesan: 'Pembayaranmu sudah diterima. Sampai jumpa di lapangan.', cta: jadwal };
+    case 'ditolak': return { ikon: 'cancel', ikonBg: '#FDE4E5', ikonWarna: '#B42328', pesan: `Pesanan ini ditolak.${alasan ? ` Alasan: ${alasan}.` : ''} Silakan pesan ulang.`, cta: ulang };
     case 'dibatalkan': return { ikon: 'cancel', ikonBg: '#E3EAE6', ikonWarna: '#4F6358', pesan: 'Pesanan ini dibatalkan dan slotnya sudah dilepas.', cta: ulang };
     case 'kedaluwarsa': return { ikon: 'clock', ikonBg: '#E3EAE6', ikonWarna: '#4F6358', pesan: 'Batas bayar terlewati, jadi slot dilepas otomatis. Silakan pesan ulang.', cta: ulang };
     case 'pengajuan': return { ikon: 'clock', ikonBg: '#FFF1D6', ikonWarna: '#7A4B00', pesan: 'Pengajuan pembatalanmu sedang ditinjau admin.', cta: jadwal };
@@ -46,12 +47,14 @@ function Baris({ k, v }: { k: string; v: ReactNode }) {
   return <div className="flex justify-between gap-3"><dt className="font-medium text-muted">{k}</dt><dd className="m-0 text-right font-bold">{v}</dd></div>;
 }
 
-export function PembayaranView({ pengguna, data, now }: { pengguna: { nama: string }; data: HalamanBayar; now: Date }) {
+export function PembayaranView({ pengguna, data, now }: { pengguna: { nama: string }; data: HalamanBayarGateway; now: Date }) {
   const t = tampilDari(data.status, data.batasBayarPada, now);
   const langkah = langkahStepper(t);
   const [kata, hijau] = JUDUL[t];
   const b = BADGE[t];
   const s = t === 'bayar' ? null : pesanStatus(t, data.alasanPenolakan);
+  // Pembayaran telat/nominal mismatch tidak mengubah status pesanan; admin yang memutuskan.
+  const ditinjau = data.transaksi?.status === 'perlu_tinjau';
 
   return (
     <div className="mx-auto w-full max-w-[1440px] overflow-x-clip bg-white">
@@ -89,27 +92,59 @@ export function PembayaranView({ pengguna, data, now }: { pengguna: { nama: stri
                     </div>
                   </div>
 
-                  {data.rekening ? (
-                    <div className="relative overflow-hidden rounded-[40px] bg-ink p-8 text-white">
-                      <div aria-hidden="true" className="absolute right-[-60px] top-[-80px] size-[300px] rounded-full bg-lime opacity-30 blur-[80px]" />
-                      <div className="relative flex flex-wrap items-end justify-between gap-6">
-                        <div>
-                          <div className="text-sm font-semibold text-white/80">Transfer ke</div>
-                          <div className="mt-1.5 text-lg font-bold">{data.rekening.bank} · a.n. {data.rekening.nama}</div>
-                          <div className="mt-3.5 font-display text-[clamp(30px,4vw,44px)] font-bold tracking-[0.02em] text-lime">{data.rekening.nomor}</div>
-                        </div>
-                        <SalinRekening nomor={data.rekening.nomor} />
-                      </div>
-                      <div className="relative mt-6 border-t border-white/15 pt-5">
-                        <div className="text-sm font-semibold text-white/80">Total yang harus ditransfer</div>
-                        <div className="mt-1.5 font-display text-[clamp(40px,5vw,60px)] font-extrabold tracking-[-0.04em]">{formatRupiah(data.totalHarga)}</div>
-                      </div>
-                    </div>
-                  ) : (
-                    <Banner nada="amber" ikon="alert">Rekening tujuan belum diatur. Hubungi pengelola sebelum mentransfer. Total pesanan {formatRupiah(data.totalHarga)}.</Banner>
+                  {data.modeSimulasi && (
+                    <Banner nada="amber" ikon="info">
+                      Mode simulasi aktif. Pembayaran diproses lewat halaman simulasi, tanpa uang sungguhan.
+                    </Banner>
                   )}
 
-                  <BuktiForm kode={data.kode} />
+                  <div className="relative overflow-hidden rounded-[40px] bg-ink p-8 text-white">
+                    <div aria-hidden="true" className="absolute right-[-60px] top-[-80px] size-[300px] rounded-full bg-lime opacity-30 blur-[80px]" />
+                    {ditinjau ? (
+                      <div className="relative flex flex-col items-start gap-4">
+                        <div className="text-sm font-semibold text-white/80">Status pembayaran</div>
+                        <div className="font-display text-[clamp(28px,4vw,40px)] font-bold tracking-[-0.03em]">Sedang ditinjau admin</div>
+                        <p className="m-0 max-w-[520px] text-[15px] leading-relaxed text-white/75">
+                          Pembayaranmu sudah kami terima, tetapi perlu diperiksa manual (mis. nominal atau waktu bayar).
+                          Tidak perlu membayar lagi. Admin akan menghubungi kamu bila ada yang perlu dikonfirmasi.
+                        </p>
+                        <div className="mt-2 flex flex-wrap items-end gap-x-8 gap-y-3 border-t border-white/15 pt-5">
+                          <div>
+                            <div className="text-sm font-semibold text-white/80">Total pesanan</div>
+                            <div className="mt-1 font-display text-[clamp(34px,4.5vw,52px)] font-extrabold tracking-[-0.04em]">{formatRupiah(data.totalHarga)}</div>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="relative flex flex-wrap items-end justify-between gap-6">
+                          <div>
+                            <div className="text-sm font-semibold text-white/80">Total tagihan</div>
+                            <div className="mt-1.5 font-display text-[clamp(40px,5vw,60px)] font-extrabold tracking-[-0.04em]">{formatRupiah(data.totalHarga)}</div>
+                          </div>
+                          <span className="flex items-center gap-2 rounded-full bg-white/10 px-3.5 py-2 text-[13px] font-semibold text-white/80">
+                            <Icon name="shield" size={14} stroke="#C6F432" />
+                            Pembayaran aman
+                          </span>
+                        </div>
+                        <div className="relative mt-7 border-t border-white/15 pt-6">
+                          <BayarSekarang
+                            kode={data.kode}
+                            gatewayAktif={data.gatewayAktif}
+                            transaksi={data.transaksi ? { redirectUrl: data.transaksi.redirectUrl, status: data.transaksi.status } : null}
+                          />
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  {!ditinjau && <BatalkanPesanan kode={data.kode} />}
+
+                  <p className="m-0 text-sm leading-relaxed text-muted">
+                    Metode pembayaran dipilih di halaman gateway. Status pesanan diperbarui otomatis setelah pembayaran diterima.
+                  </p>
+
+                  <StatusPembayaran kode={data.kode} aktif={!ditinjau} />
                 </>
               ) : (
                 s && (

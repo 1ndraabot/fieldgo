@@ -13,12 +13,15 @@ export type PesanData = {
   total: number;
   tersedia: boolean;
   batasBayarPada: Date;
+  /** Batas bayar global (jam) untuk teks penjelasan di layar konfirmasi. */
+  batasBayarJam: number;
 };
 
 /** Data layar konfirmasi (FR-ORD-02). Harga hanya tampilan; server menghitung ulang saat pesanan dibuat (BR-06). */
 export async function getPesanData(
   i: { lapanganId: number; tanggal: string; mulai: number; selesai: number },
   now = new Date(),
+  batasBayarJam = 24,
 ): Promise<PesanData | null> {
   const susun = (lapangan: PesanData['lapangan'], tarif: Parameters<typeof rincianHarga>[0], slot: SlotInfo[]): PesanData => {
     const dipilih = slot.filter((s) => s.jam >= i.mulai && s.jam < i.selesai);
@@ -27,7 +30,8 @@ export async function getPesanData(
       lapangan, tanggal: i.tanggal, mulai: i.mulai, selesai: i.selesai, jam: dipilih.map((s) => ({ jam: s.jam, harga: s.harga ?? 0, tersedia: s.status === 'tersedia' })),
       total: rincian.reduce((n, r) => n + r.harga, 0),
       tersedia: dipilih.length === i.selesai - i.mulai && dipilih.every((s) => s.status === 'tersedia'),
-      batasBayarPada: batasBayar(now, i.tanggal, i.mulai),
+      batasBayarPada: batasBayar(now, i.tanggal, i.mulai, batasBayarJam),
+      batasBayarJam,
     };
   };
 
@@ -40,7 +44,7 @@ export async function getPesanData(
       lapangan: { id: d.id, nama: d.nama, olahraga: d.olahraga, alamat: d.alamat },
       tanggal: i.tanggal, mulai: i.mulai, selesai: i.selesai,
       jam: r.map((x) => ({ ...x, tersedia: true })), total: r.reduce((n, x) => n + x.harga, 0),
-      tersedia: true, batasBayarPada: batasBayar(now, i.tanggal, i.mulai),
+      tersedia: true, batasBayarPada: batasBayar(now, i.tanggal, i.mulai, batasBayarJam), batasBayarJam,
     };
   }
 
@@ -66,5 +70,5 @@ export async function getPesanData(
     })),
     slotAktif: slot.map((s) => ({ tanggal: i.tanggal, jam: s.jam, status: s.pesanan.status, batasBayarPada: s.pesanan.batasBayarPada })),
   });
-  return susun({ id: l.id, nama: l.nama, olahraga: l.jenisOlahraga.nama, alamat: l.alamat }, l.tarif, slotInfo);
+  return susun({ id: l.id, nama: l.nama, olahraga: l.jenisOlahraga.nama, alamat: l.alamat?.trim() || 'Lokasi belum diisi' }, l.tarif, slotInfo);
 }

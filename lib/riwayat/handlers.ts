@@ -8,6 +8,7 @@ import { ajukanPembatalan, type RiwayatStore } from './service.ts';
 export type RiwayatHandlerDeps = {
   store: RiwayatStore;
   sekarang: () => Date;
+  batasPembatalanHari?: () => Promise<number>;
   auth: AuthDeps;
   skema: Skema<AjuanInput>;
   limiter: { ajuan: Limiter };

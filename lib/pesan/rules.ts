@@ -34,11 +34,14 @@ export function mulaiMain(tanggal: string, jam: number): Date {
   return new Date(`${tanggal}T${String(jam).padStart(2, '0')}:00:00+07:00`);
 }
 
-/** `batas_bayar_pada` = min(pesanan dibuat + 24 jam, jam mulai main) — BR-07. */
-export function batasBayar(dibuat: Date, tanggal: string, jamMulai: number): Date {
+/**
+ * `batas_bayar_pada` = min(pesanan dibuat + batas jam dari Pengaturan, jam mulai main) — BR-07.
+ * `batasJam` default 24 agar pemanggil lama tetap aman.
+ */
+export function batasBayar(dibuat: Date, tanggal: string, jamMulai: number, batasJam = 24): Date {
   const mulai = mulaiMain(tanggal, jamMulai);
-  const duaPuluhEmpatJam = new Date(dibuat.getTime() + 24 * 3600_000);
-  return mulai < duaPuluhEmpatJam ? mulai : duaPuluhEmpatJam;
+  const batas = new Date(dibuat.getTime() + batasJam * 3600_000);
+  return mulai < batas ? mulai : batas;
 }
 
 const TANGGAL = /^\d{4}-\d{2}-\d{2}$/;

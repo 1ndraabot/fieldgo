@@ -4,6 +4,7 @@ import { BannerVerifikasi } from '@/components/auth/BannerVerifikasi';
 import { Banner } from '@/components/auth/ui';
 import { Header } from '@/components/Header';
 import { KonfirmasiPesanan } from '@/components/pesan/KonfirmasiPesanan';
+import { bacaPengaturan } from '@/lib/admin/pengaturan/data';
 import { wajibPenyewa } from '@/lib/auth/session';
 import { formatJam, formatRupiah, labelPanjang } from '@/lib/format';
 import { labelBatasBayar } from '@/lib/jadwal';
@@ -26,7 +27,7 @@ export default async function Pesan({ searchParams }: { searchParams: Promise<Pa
   const lapanganId = angka(sp.lapangan), mulai = angka(sp.mulai), selesai = angka(sp.selesai);
   const tanggal = typeof sp.tanggal === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(sp.tanggal) ? sp.tanggal : null;
   const sah = lapanganId !== null && tanggal !== null && mulai !== null && selesai !== null && mulai >= 6 && selesai <= 24 && selesai > mulai;
-  const data = sah ? await getPesanData({ lapanganId, tanggal, mulai, selesai }) : null;
+  const data = sah ? await getPesanData({ lapanganId, tanggal, mulai, selesai }, new Date(), (await bacaPengaturan()).batasBayarJam) : null;
   const terverifikasi = pengguna.emailTerverifikasiPada !== null;
 
   return (
@@ -90,7 +91,7 @@ export default async function Pesan({ searchParams }: { searchParams: Promise<Pa
             </div>
 
             <div className="rounded-[22px] border-[1.5px] border-line bg-white px-5 py-4 text-[14px] font-medium text-muted">
-              Batas bayar: <b className="text-ink">{labelBatasBayar(data.batasBayarPada)}</b> (24 jam sejak pesanan dibuat atau sebelum jam main, mana yang lebih dulu).
+              Batas bayar: <b className="text-ink">{labelBatasBayar(data.batasBayarPada)}</b> ({data.batasBayarJam} jam sejak pesanan dibuat atau sebelum jam main, mana yang lebih dulu).
             </div>
 
             {!data.tersedia ? (

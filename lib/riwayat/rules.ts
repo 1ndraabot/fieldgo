@@ -1,5 +1,5 @@
 // Aturan riwayat & pembatalan: fungsi murni, bisa diuji tanpa database.
-import { wibSekarang } from '../format.ts';
+import { tambahHari, wibSekarang } from '../format.ts';
 import type { StatusPesanan } from '../slots.ts';
 
 /**
@@ -11,11 +11,11 @@ export function statusTampil(status: StatusPesanan, batasBayarPada: Date | null,
 }
 
 /**
- * Pembatalan pesanan Terkonfirmasi hanya lewat form, paling lambat H-1 pukul 23.59 WIB (BR-12).
- * Artinya selama tanggal main (WIB) masih setelah hari ini.
+ * Pembatalan pesanan Terkonfirmasi hanya lewat form, paling lambat `batasHari` hari sebelum
+ * tanggal main (default H-1, BR-12). Artinya tanggal main minimal hari ini + batasHari (WIB).
  */
-export function bisaAjukanBatal(status: StatusPesanan, tanggal: string, now: Date): boolean {
-  return status === 'terkonfirmasi' && wibSekarang(now).tanggal < tanggal;
+export function bisaAjukanBatal(status: StatusPesanan, tanggal: string, now: Date, batasHari = 1): boolean {
+  return status === 'terkonfirmasi' && tambahHari(wibSekarang(now).tanggal, batasHari) <= tanggal;
 }
 
 export type AjuanInput = { alasan: string; namaBank: string; nomorRekening: string; atasNama: string };

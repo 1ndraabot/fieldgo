@@ -8,6 +8,7 @@ import { pesan, type PesanStore } from './service.ts';
 export type PesanHandlerDeps = {
   store: PesanStore;
   sekarang: () => Date;
+  batasBayarJam?: () => Promise<number>;
   auth: AuthDeps;
   skema: Skema<PesanInput>;
   limiter: { pesan: Limiter };

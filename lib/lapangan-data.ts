@@ -31,7 +31,10 @@ export async function getHalamanLapangan(
 
   const l = await db.lapangan.findUnique({
     where: { id },
-    include: { jenisOlahraga: true, tarif: true, jamOperasional: true },
+    include: {
+      jenisOlahraga: true, tarif: true, jamOperasional: true,
+      fasilitas: { select: { fasilitas: { select: { nama: true } } } },
+    },
   });
   if (!l || !l.aktif) return null; // lapangan nonaktif = tidak ada halaman publik (FR-PUB-03)
 
@@ -44,10 +47,9 @@ export async function getHalamanLapangan(
     }),
   ]);
 
-  // Tabel fasilitas adalah daftar induk (tanpa relasi per lapangan); tampilkan sebagai fasilitas standar.
-  const fasilitas = await db.$queryRaw<{ nama: string }[]>`SELECT nama FROM fasilitas ORDER BY id`
-    .then((rows) => rows.map((r) => r.nama))
-    .catch((e) => { console.error('[lapangan] gagal membaca fasilitas', e); return FASILITAS_DEFAULT; });
+  // Fasilitas per lapangan dari junction; bila belum diatur, pakai daftar standar.
+  const fasilitas = l.fasilitas.map((f) => f.fasilitas.nama);
+  const daftarFasilitas = fasilitas.length ? fasilitas : FASILITAS_DEFAULT;
 
   const slotInfo = computeSlotStatuses({
     tanggal, now, lapanganAktif: l.aktif, jamOperasional: l.jamOperasional, tarif: l.tarif,
@@ -61,13 +63,14 @@ export async function getHalamanLapangan(
   const koordinat = l.latitude !== null && l.longitude !== null
     ? `${l.latitude.toString().replace('.', ',')} · ${l.longitude.toString().replace('.', ',')}`
     : 'Belum diisi';
+  const alamat = l.alamat?.trim() || 'Lokasi belum diisi';
 
   return {
     data: {
       id: l.id, nama: l.nama, olahraga: l.jenisOlahraga.nama, ilustrasi: ilustrasiUntuk(l.jenisOlahraga.nama),
       rating: '4.8', kapasitas: kapasitasUntuk(l.jenisOlahraga.nama),
-      deskripsi: l.deskripsi ?? `Lapangan ${l.jenisOlahraga.nama} di ${l.alamat}.`,
-      alamat: l.alamat, koordinat, fasilitas: fasilitas.length ? fasilitas : FASILITAS_DEFAULT,
+      deskripsi: l.deskripsi ?? `Lapangan ${l.jenisOlahraga.nama} di ${alamat}.`,
+      alamat, koordinat, fasilitas: daftarFasilitas,
       jamOperasional: l.jamOperasional, tarif: l.tarif, slotAktif: [],
     },
     slot: slotInfo,
