@@ -52,7 +52,7 @@ export function SimulasiPembayaran({ kode, orderId, jumlah }: { kode: string; or
           Simulasi <span className="text-brand-2">pembayaran</span>
         </h1>
         <p className="m-0 mt-3 text-[15px] leading-relaxed text-muted">
-          Halaman ini menggantikan Midtrans selama kredensial gateway belum tersedia.
+          Halaman ini menggantikan Xendit selama kredensial gateway belum tersedia.
           Tidak ada uang yang benar-benar dipindahkan.
         </p>
         <dl className="m-0 mt-6 grid gap-2.5 rounded-2xl bg-white/70 p-5 text-[15px]">

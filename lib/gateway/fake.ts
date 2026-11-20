@@ -10,7 +10,7 @@ export const simulasiAktif = (): boolean => {
 };
 
 /**
- * Provider lokal untuk menguji seluruh alur tanpa akun Midtrans.
+ * Provider lokal untuk menguji seluruh alur tanpa akun Xendit.
  * Hanya menerima notifikasi bila GATEWAY_PROVIDER=fake dan bukan production.
  */
 export const fakeGateway: GatewayProvider = {
@@ -23,6 +23,7 @@ export const fakeGateway: GatewayProvider = {
       token: null,
       redirectUrl: `/pesanan/${encodeURIComponent(i.kode)}/bayar/simulasi?order=${order}`,
       kedaluwarsaPada: i.kedaluwarsaPada,
+      providerRef: null,
     };
   },
 

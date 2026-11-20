@@ -16,6 +16,7 @@ export type PesananGateway = {
 
 export type TransaksiTersimpan = {
   orderId: string;
+  providerRef: string | null;
   token: string | null;
   redirectUrl: string;
   status: StatusBayar;
@@ -50,6 +51,7 @@ export interface GatewayStore {
     pesananId: number;
     provider: string;
     orderId: string;
+    providerRef: string | null;
     jumlah: number;
     token: string | null;
     redirectUrl: string;
@@ -96,6 +98,7 @@ export async function buatTransaksi(d: GatewayDeps, i: { penggunaId: number; kod
       ok: true,
       transaksi: {
         orderId: aktif.orderId,
+        providerRef: aktif.providerRef,
         token: aktif.token,
         redirectUrl: aktif.redirectUrl,
         kedaluwarsaPada: aktif.kedaluwarsaPada ?? p.batasBayarPada,
@@ -134,6 +137,7 @@ export async function buatTransaksi(d: GatewayDeps, i: { penggunaId: number; kod
     pesananId: p.id,
     provider: d.gateway.nama,
     orderId: transaksi.orderId,
+    providerRef: transaksi.providerRef,
     jumlah: p.totalHarga,
     token: transaksi.token,
     redirectUrl: transaksi.redirectUrl,
@@ -145,6 +149,7 @@ export async function buatTransaksi(d: GatewayDeps, i: { penggunaId: number; kod
     ok: true,
     transaksi: {
       orderId: tersimpan.orderId,
+      providerRef: tersimpan.providerRef,
       token: tersimpan.token,
       redirectUrl: tersimpan.redirectUrl,
       kedaluwarsaPada: tersimpan.kedaluwarsaPada ?? transaksi.kedaluwarsaPada,

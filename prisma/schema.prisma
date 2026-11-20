@@ -298,8 +298,9 @@ model Pembayaran {
 model PembayaranGateway {
   id             Int                    @id @default(autoincrement())
   pesananId      Int                    @map("pesanan_id")
-  provider       String                 @default("midtrans")
+  provider       String                 @default("xendit")
   orderId        String                 @unique @map("order_id")
+  providerRef    String?                @map("provider_ref") // invoice id Xendit; dipakai refund & sinkron
   metode         String?
   jumlah         Int
   status         StatusPembayaranGateway @default(pending)
@@ -315,13 +316,14 @@ model PembayaranGateway {
 
   @@index([pesananId])
   @@index([status])
+  @@index([providerRef])
   @@map("pembayaran_gateway")
 }
 
 // Notifikasi mentah dari provider. `event_key` unik = kunci idempotensi.
 model GatewayEvent {
   id           Int      @id @default(autoincrement())
-  provider     String   @default("midtrans")
+  provider     String   @default("xendit")
   eventKey     String   @unique @map("event_key")
   orderId      String   @map("order_id")
   tipe         String

@@ -30,18 +30,18 @@ export const prismaPengecualianStore: PengecualianStore = {
     const t = await db.pembayaranGateway.findFirst({
       where: { pesanan: { kodePesanan: kode } },
       orderBy: { dibuatPada: 'desc' },
-      select: { orderId: true },
+      select: { orderId: true, providerRef: true },
     });
-    return t && { orderId: t.orderId };
+    return t && { orderId: t.orderId, providerRef: t.providerRef };
   },
 
   async pembayaranTertagih(kode) {
     const t = await db.pembayaranGateway.findFirst({
       where: { pesanan: { kodePesanan: kode }, status: { in: ['dibayar', 'perlu_tinjau'] } },
       orderBy: { dibuatPada: 'desc' },
-      select: { id: true, orderId: true, jumlah: true },
+      select: { id: true, orderId: true, providerRef: true, jumlah: true },
     });
-    return t && { id: t.id, orderId: t.orderId, jumlah: t.jumlah };
+    return t && { id: t.id, orderId: t.orderId, providerRef: t.providerRef, jumlah: t.jumlah };
   },
 
   async terimaPembayaran(d) {
@@ -88,7 +88,7 @@ export const prismaPengecualianStore: PengecualianStore = {
         const pb = await tx.pembayaranGateway.findFirst({
           where: { pesananId: d.pesananId, OR: [{ perluTinjau: true }, { status: 'perlu_tinjau' }] },
           orderBy: { dibuatPada: 'desc' },
-          select: { id: true, orderId: true, jumlah: true },
+          select: { id: true, orderId: true, providerRef: true, jumlah: true },
         });
         if (!pb) return 'TIDAK_DITEMUKAN';
 
@@ -134,7 +134,7 @@ export const prismaPengecualianStore: PengecualianStore = {
           });
         }
 
-        return { refundId: refund.id, orderId: pb.orderId, jumlah: pb.jumlah, adaTagihan: true };
+        return { refundId: refund.id, orderId: pb.orderId, providerRef: pb.providerRef, jumlah: pb.jumlah, adaTagihan: true };
       });
     } catch (e) {
       console.error('[admin-pengecualian] klaimRefundPembayaran', e);
@@ -151,7 +151,7 @@ export const prismaPengecualianStore: PengecualianStore = {
           pembayaranGateway: {
             where: { status: { in: ['dibayar', 'perlu_tinjau'] } },
             orderBy: { dibuatPada: 'desc' }, take: 1,
-            select: { id: true, orderId: true, jumlah: true },
+            select: { id: true, orderId: true, providerRef: true, jumlah: true },
           },
         },
       });
@@ -167,7 +167,7 @@ export const prismaPengecualianStore: PengecualianStore = {
         select: { id: true },
       });
       return {
-        refundId: refund.id, orderId: pg?.orderId ?? null,
+        refundId: refund.id, orderId: pg?.orderId ?? null, providerRef: pg?.providerRef ?? null,
         jumlah: pg?.jumlah ?? d.nominal, adaTagihan: !!pg,
       };
     });
@@ -211,7 +211,7 @@ export const prismaPengecualianStore: PengecualianStore = {
       const pg = await tx.pembayaranGateway.findFirst({
         where: { pesananId: p.id, status: 'dibayar' },
         orderBy: { dibuatPada: 'desc' },
-        select: { id: true, orderId: true, jumlah: true },
+        select: { id: true, orderId: true, providerRef: true, jumlah: true },
       });
       const nominal = d.nominalRefund ?? p.totalHarga;
       const refund = await tx.refund.create({
@@ -223,7 +223,7 @@ export const prismaPengecualianStore: PengecualianStore = {
         select: { id: true },
       });
       return {
-        refundId: refund.id, orderId: pg?.orderId ?? null,
+        refundId: refund.id, orderId: pg?.orderId ?? null, providerRef: pg?.providerRef ?? null,
         jumlah: pg?.jumlah ?? nominal, adaTagihan: !!pg,
       };
     });

@@ -4,7 +4,7 @@ export type Rekening = { bank: string; nomor: string; atasNama: string };
 
 export type MetodeKode = 'qris' | 'gopay' | 'shopeepay' | 'bank_transfer' | 'echannel' | 'credit_card';
 
-/** Kode `enabled_payments` Midtrans yang boleh dipilih admin (kosong = semua metode aktif). */
+/** Kode metode pembayaran yang boleh dipilih admin (kosong = semua metode aktif). */
 export const METODE_PEMBAYARAN: { kode: MetodeKode; label: string }[] = [
   { kode: 'qris', label: 'QRIS' },
   { kode: 'gopay', label: 'GoPay' },

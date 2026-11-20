@@ -1,8 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createHash } from 'node:crypto';
 import {
-  nominalCocok, petakanStatusMidtrans, putusanNotifikasi, signatureCocok, signatureMidtrans,
+  durasiInvoiceDetik, nominalCocok, petakanMetodeXendit, petakanStatusRefundXendit, petakanStatusXendit,
+  putusanNotifikasi, samakanAmanWaktu,
 } from '../lib/gateway/rules.ts';
 import {
   buatTransaksi, prosesNotifikasi,
@@ -71,6 +71,7 @@ function buatProvider(nama = 'fake') {
         token: `tok-${i.orderId}`,
         redirectUrl: `https://pay.test/${i.orderId}`,
         kedaluwarsaPada: i.kedaluwarsaPada,
+        providerRef: `inv-${i.orderId}`,
       };
     },
     async bacaNotifikasi() { return null; },
@@ -87,30 +88,47 @@ function deps(store: GatewayStore, gateway: GatewayProvider): GatewayDeps {
 
 // ─── Aturan murni ───────────────────────────────────────────────────────────
 
-test('signatureMidtrans = SHA-512(order_id + status_code + gross_amount + server_key)', () => {
-  const i = { orderId: 'FGO-UJI01', statusCode: '200', grossAmount: '200000.00', serverKey: 'server-key-rahasia' };
-  const diharapkan = createHash('sha512')
-    .update(`${i.orderId}${i.statusCode}${i.grossAmount}${i.serverKey}`)
-    .digest('hex');
-  assert.equal(signatureMidtrans(i), diharapkan);
-  assert.ok(signatureCocok(diharapkan, diharapkan.toUpperCase())); // perbandingan tidak peka huruf
-  assert.equal(signatureCocok(diharapkan, diharapkan.replace(/.$/, '0')), false);
-  assert.equal(signatureCocok('pendek', diharapkan), false); // panjang beda tidak melempar
+test('samakanAmanWaktu: token callback harus sama persis, termasuk panjangnya', () => {
+  const token = 'token-callback-rahasia';
+  assert.equal(samakanAmanWaktu(token, token), true);
+  assert.equal(samakanAmanWaktu(token, token.toUpperCase()), false); // token peka huruf
+  assert.equal(samakanAmanWaktu(token, token.replace(/.$/, '0')), false);
+  assert.equal(samakanAmanWaktu('pendek', token), false); // panjang beda tidak melempar
 });
 
-test('petakanStatusMidtrans menutup semua status yang dipakai provider', () => {
-  assert.equal(petakanStatusMidtrans('capture', 'accept'), 'dibayar');
-  assert.equal(petakanStatusMidtrans('capture'), 'dibayar');
-  assert.equal(petakanStatusMidtrans('capture', 'challenge'), 'perlu_tinjau');
-  assert.equal(petakanStatusMidtrans('settlement'), 'dibayar');
-  assert.equal(petakanStatusMidtrans('pending'), 'pending');
-  for (const s of ['deny', 'cancel', 'failure']) assert.equal(petakanStatusMidtrans(s), 'gagal');
-  assert.equal(petakanStatusMidtrans('expire'), 'kedaluwarsa');
-  assert.equal(petakanStatusMidtrans('refund'), 'refund');
-  assert.equal(petakanStatusMidtrans('partial_refund'), 'sebagian_refund');
-  assert.equal(petakanStatusMidtrans('chargeback'), 'perlu_tinjau');
-  assert.equal(petakanStatusMidtrans('partial_chargeback'), 'perlu_tinjau');
-  assert.equal(petakanStatusMidtrans('status-baru-tak-dikenal'), 'perlu_tinjau');
+test('petakanStatusXendit menutup status invoice yang dipakai provider', () => {
+  assert.equal(petakanStatusXendit('PAID'), 'dibayar');
+  assert.equal(petakanStatusXendit('SETTLED'), 'dibayar');
+  assert.equal(petakanStatusXendit('paid'), 'dibayar');
+  assert.equal(petakanStatusXendit('PENDING'), 'pending');
+  assert.equal(petakanStatusXendit('EXPIRED'), 'kedaluwarsa');
+  assert.equal(petakanStatusXendit('FAILED'), 'gagal');
+  assert.equal(petakanStatusXendit('status-baru-tak-dikenal'), 'perlu_tinjau');
+});
+
+test('petakanStatusRefundXendit: sukses/pending = refund, sisanya diabaikan', () => {
+  assert.equal(petakanStatusRefundXendit('succeeded'), 'refund');
+  assert.equal(petakanStatusRefundXendit('PENDING'), 'refund');
+  assert.equal(petakanStatusRefundXendit('failed'), 'abaikan');
+  assert.equal(petakanStatusRefundXendit('status-aneh'), 'abaikan');
+});
+
+test('petakanMetodeXendit: kode admin dipetakan ke payment_methods Xendit tanpa duplikat', () => {
+  assert.deepEqual(petakanMetodeXendit(['qris']), ['QRIS']);
+  assert.deepEqual(petakanMetodeXendit(['echannel']), ['MANDIRI']);
+  assert.deepEqual(
+    petakanMetodeXendit(['bank_transfer']),
+    ['BCA', 'BNI', 'BRI', 'MANDIRI', 'PERMATA'],
+  );
+  assert.deepEqual(petakanMetodeXendit(['qris', 'echannel', 'gopay']), ['QRIS', 'MANDIRI', 'GOPAY']);
+  assert.deepEqual(petakanMetodeXendit([]), []); // kosong = semua metode akun
+  assert.deepEqual(petakanMetodeXendit(['tidak-dikenal']), []);
+});
+
+test('durasiInvoiceDetik: sisa waktu dibulatkan ke atas dan minimal 60 detik', () => {
+  assert.equal(durasiInvoiceDetik(new Date(NOW.getTime() + 3_600_000), NOW), 3600);
+  assert.equal(durasiInvoiceDetik(new Date(NOW.getTime() + 1_500), NOW), 60); // dibulatkan & minimum
+  assert.equal(durasiInvoiceDetik(new Date(NOW.getTime() - 1_000), NOW), 60);
 });
 
 test('putusanNotifikasi: konfirmasi hanya bila nominal cocok, belum telat, dan status masih menunggu', () => {
@@ -202,6 +220,7 @@ test('buatTransaksi: pesanan milik orang lain, status berubah, atau batas lewat 
 test('buatTransaksi: transaksi pending yang masih berlaku dipakai ulang (klik ganda tidak menagih dua kali)', async () => {
   const aktif: TransaksiTersimpan = {
     orderId: 'FGO-UJI01',
+    providerRef: 'inv-lama',
     token: 'tok-lama',
     redirectUrl: 'https://pay.test/lama',
     status: 'pending',
@@ -222,6 +241,7 @@ test('buatTransaksi: transaksi pending yang masih berlaku dipakai ulang (klik ga
 test('buatTransaksi: transaksi lama kedaluwarsa membuat order baru -R2, dan batas 5 percobaan dihormati', async () => {
   const lama: TransaksiTersimpan = {
     orderId: 'FGO-UJI01',
+    providerRef: null,
     token: null,
     redirectUrl: 'https://pay.test/lama',
     status: 'pending',
@@ -264,7 +284,7 @@ test('buatTransaksi: kegagalan provider tidak menyimpan transaksi setengah jadi'
 
 test('prosesNotifikasi meneruskan provider dan waktu server ke store', async () => {
   const s = buatStore();
-  const g = buatProvider('midtrans');
+  const g = buatProvider('xendit');
   const notif: NotifikasiGateway = {
     eventKey: 'evt-1',
     orderId: 'FGO-UJI01',
@@ -273,12 +293,12 @@ test('prosesNotifikasi meneruskan provider dan waktu server ke store', async () 
     metode: 'qris',
     jumlah: 200_000,
     waktuBayar: NOW,
-    payload: { transaction_status: 'settlement' },
+    payload: { status: 'PAID' },
   };
 
   assert.equal(await prosesNotifikasi(deps(s.store, g.gateway), notif), 'ok');
   assert.equal(s.notifikasi.length, 1);
-  assert.equal(s.notifikasi[0].provider, 'midtrans');
+  assert.equal(s.notifikasi[0].provider, 'xendit');
   assert.deepEqual(s.notifikasi[0].now, NOW);
   assert.equal(s.notifikasi[0].eventKey, 'evt-1');
 });

@@ -78,6 +78,7 @@ function buatStore() {
     pembayaran: {
       id: 11,
       orderId: 'FGO-UJI01-R1',
+      providerRef: 'inv-11',
       jumlah: 200_000,
       status: 'perlu_tinjau' as string,
       perluTinjau: true,
@@ -105,11 +106,16 @@ function buatStore() {
       return { id: s.pembayaran.id, orderId: s.pembayaran.orderId, provider: 'uji', status: s.pembayaran.status, jumlah: s.pembayaran.jumlah, alasan: s.pembayaran.alasan };
     },
     async transaksiTerakhir(kode) {
-      return s.kode === kode && s.adaTransaksi ? { orderId: s.pembayaran.orderId } : null;
+      return s.kode === kode && s.adaTransaksi
+        ? { orderId: s.pembayaran.orderId, providerRef: s.pembayaran.providerRef }
+        : null;
     },
     async pembayaranTertagih(kode) {
       if (s.kode !== kode || s.adaTransaksi === false) return null;
-      return { id: s.pembayaran.id, orderId: s.pembayaran.orderId, jumlah: s.pembayaran.jumlah };
+      return {
+        id: s.pembayaran.id, orderId: s.pembayaran.orderId, providerRef: s.pembayaran.providerRef,
+        jumlah: s.pembayaran.jumlah,
+      };
     },
     async terimaPembayaran(d) {
       if (s.status !== 'menunggu_pembayaran') return 'STATUS_BERUBAH';
@@ -135,7 +141,7 @@ function buatStore() {
         s.status = 'dibatalkan';
         s.riwayat.push({ statusBaru: 'dibatalkan', catatan: 'Pembayaran bermasalah di-refund.' });
       }
-      return { refundId: refund.id, orderId: s.pembayaran.orderId, jumlah: s.pembayaran.jumlah, adaTagihan: true } satisfies KlaimRefund;
+      return { refundId: refund.id, orderId: s.pembayaran.orderId, providerRef: s.pembayaran.providerRef, jumlah: s.pembayaran.jumlah, adaTagihan: true } satisfies KlaimRefund;
     },
     async buatRefundBaru(d) {
       const refund = {
@@ -146,6 +152,7 @@ function buatStore() {
       s.refund.push(refund);
       return {
         refundId: refund.id, orderId: s.adaTransaksi ? s.pembayaran.orderId : null,
+        providerRef: s.adaTransaksi ? s.pembayaran.providerRef : null,
         jumlah: s.pembayaran.jumlah, adaTagihan: s.adaTransaksi,
       } satisfies KlaimRefund;
     },
@@ -161,7 +168,7 @@ function buatStore() {
         status: 'menunggu' as const, pembayaranGatewayId: s.pembayaran.id, reference: null, catatan: d.catatan,
       };
       s.refund.push(refund);
-      return { refundId: refund.id, orderId: s.pembayaran.orderId, jumlah: s.pembayaran.jumlah, adaTagihan: true } satisfies KlaimRefund;
+      return { refundId: refund.id, orderId: s.pembayaran.orderId, providerRef: s.pembayaran.providerRef, jumlah: s.pembayaran.jumlah, adaTagihan: true } satisfies KlaimRefund;
     },
     async putuskanBatalTolak(d) {
       if (!s.adaPengajuan) return 'TIDAK_DITEMUKAN';
@@ -198,19 +205,19 @@ function buatStore() {
 }
 
 function buatGateway(pilihan: { statusAmbil?: NotifikasiGateway | null; refundGagal?: boolean; lempar?: boolean } = {}) {
-  const refundCalls: { orderId: string; nominal: number; alasan: string }[] = [];
-  const statusCalls: string[] = [];
+  const refundCalls: { orderId: string; nominal: number; alasan: string; providerRef?: string | null }[] = [];
+  const statusCalls: { orderId: string; providerRef?: string | null }[] = [];
   const gateway: GatewayProvider = {
     nama: 'uji',
     async buatTransaksi() { throw new Error('tidak dipakai'); },
     async bacaNotifikasi() { return null; },
-    async ambilStatus(orderId) {
-      statusCalls.push(orderId);
+    async ambilStatus(orderId, providerRef) {
+      statusCalls.push({ orderId, providerRef });
       if (pilihan.lempar) throw new Error('gateway down');
       return pilihan.statusAmbil ?? null;
     },
-    async refund(orderId, nominal, alasan) {
-      refundCalls.push({ orderId, nominal, alasan });
+    async refund(orderId, nominal, alasan, providerRef) {
+      refundCalls.push({ orderId, nominal, alasan, providerRef });
       if (pilihan.refundGagal) return { ok: false, kode: 'SALDO_KURANG' };
       return { ok: true, reference: `ref-${orderId}` };
     },
@@ -279,6 +286,7 @@ test('tinjauPembayaran: slot sudah dipakai orang lain → SLOT_TERPAKAI, lalu re
   assert.equal(refund.ok, true);
   assert.equal(refundCalls.length, 1);
   assert.equal(refundCalls[0].orderId, 'FGO-UJI01-R1');
+  assert.equal(refundCalls[0].providerRef, 'inv-11');
   assert.equal(keadaan.refund[0].status, 'diproses');
   assert.equal(keadaan.refund[0].reference, 'ref-FGO-UJI01-R1');
   assert.equal(keadaan.pembayaran.status, 'refund');
@@ -335,7 +343,7 @@ test('sinkronkan: tanpa transaksi → TIDAK_DITEMUKAN; gateway diam → BELUM_AD
   deps.gateway = gateway;
   const h1 = await sinkronkan(deps, 'FGO-UJI01');
   assert.ok(!h1.ok && h1.kode === 'BELUM_ADA_INFO');
-  assert.deepEqual(statusCalls, ['FGO-UJI01-R1']);
+  assert.deepEqual(statusCalls, [{ orderId: 'FGO-UJI01-R1', providerRef: 'inv-11' }]);
 
   const notif: NotifikasiGateway = {
     eventKey: 'uji:1', orderId: 'FGO-UJI01-R1', tipe: 'pembayaran', status: 'dibayar',

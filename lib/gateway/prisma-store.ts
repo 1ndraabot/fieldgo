@@ -1,7 +1,7 @@
 import { Prisma } from '@prisma/client';
 import { db } from '../db.ts';
 import type { StatusBayar } from './types.ts';
-import { putusanNotifikasi } from './rules.ts';
+import { putusanNotifikasi, statusRefundTersimpan } from './rules.ts';
 import type { GatewayStore, HasilNotifikasi } from './service.ts';
 
 const SUDAH_DIBAYAR: StatusBayar[] = ['dibayar', 'refund', 'sebagian_refund'];
@@ -51,19 +51,20 @@ export const prismaGatewayStore: GatewayStore = {
     const t = await db.pembayaranGateway.findFirst({
       where: { pesananId, status: 'pending', kedaluwarsaPada: { gt: now } },
       orderBy: { dibuatPada: 'desc' },
-      select: { orderId: true, token: true, redirectUrl: true, status: true, kedaluwarsaPada: true },
+      select: { orderId: true, providerRef: true, token: true, redirectUrl: true, status: true, kedaluwarsaPada: true },
     });
     return t && t.redirectUrl
-      ? { orderId: t.orderId, token: t.token, redirectUrl: t.redirectUrl, status: t.status, kedaluwarsaPada: t.kedaluwarsaPada }
+      ? { orderId: t.orderId, providerRef: t.providerRef, token: t.token, redirectUrl: t.redirectUrl, status: t.status, kedaluwarsaPada: t.kedaluwarsaPada }
       : null;
   },
 
   hitungPercobaan: (pesananId) => db.pembayaranGateway.count({ where: { pesananId } }),
 
   async simpanTransaksi(d) {
-    const pilih = { orderId: true, token: true, redirectUrl: true, status: true, kedaluwarsaPada: true } as const;
-    const rapikan = (t: { orderId: string; token: string | null; redirectUrl: string | null; status: StatusBayar; kedaluwarsaPada: Date | null }) => ({
+    const pilih = { orderId: true, providerRef: true, token: true, redirectUrl: true, status: true, kedaluwarsaPada: true } as const;
+    const rapikan = (t: { orderId: string; providerRef: string | null; token: string | null; redirectUrl: string | null; status: StatusBayar; kedaluwarsaPada: Date | null }) => ({
       orderId: t.orderId,
+      providerRef: t.providerRef,
       token: t.token,
       redirectUrl: t.redirectUrl ?? '',
       status: t.status,
@@ -76,6 +77,7 @@ export const prismaGatewayStore: GatewayStore = {
           pesananId: d.pesananId,
           provider: d.provider,
           orderId: d.orderId,
+          providerRef: d.providerRef,
           jumlah: d.jumlah,
           token: d.token,
           redirectUrl: d.redirectUrl,
@@ -120,17 +122,23 @@ export const prismaGatewayStore: GatewayStore = {
           data: {
             provider: d.provider,
             eventKey: d.eventKey,
-            orderId: d.orderId,
+            orderId: d.orderId || d.providerRef || '-',
             tipe: d.tipe,
             payload: d.payload as Prisma.InputJsonValue,
           },
         });
 
-        const pg = await tx.pembayaranGateway.findUnique({
-          where: { orderId: d.orderId },
-          include: { pesanan: { select: { id: true, status: true, batasBayarPada: true } } },
-        });
-        if (!pg) return 'tidak_ditemukan';
+        // Callback pembayaran membawa external_id (= orderId); callback refund Xendit hanya
+        // membawa invoice id, jadi fallback lewat provider_ref.
+        const include = { pesanan: { select: { id: true, status: true, batasBayarPada: true } } } as const;
+        const dariOrder = d.orderId
+          ? await tx.pembayaranGateway.findUnique({ where: { orderId: d.orderId }, include })
+          : null;
+        const pembayaran = dariOrder ?? (d.providerRef
+          ? await tx.pembayaranGateway.findFirst({ where: { providerRef: d.providerRef }, include })
+          : null);
+        if (!pembayaran) return 'tidak_ditemukan';
+        const pg = pembayaran;
 
         const putusan = putusanNotifikasi({
           status: d.status,
@@ -238,12 +246,15 @@ export const prismaGatewayStore: GatewayStore = {
             });
             return 'pending';
 
-          case 'refund':
+          case 'refund': {
+            // Xendit tidak memberi total invoice di callback refund; nominal lebih kecil
+            // dari tagihan berarti refund sebagian.
             await tx.pembayaranGateway.update({
               where: { id: pg.id },
-              data: { status: d.status === 'sebagian_refund' ? 'sebagian_refund' : 'refund' },
+              data: { status: statusRefundTersimpan(d.status, d.jumlah, pg.jumlah) },
             });
             return 'refund';
+          }
 
           case 'abaikan':
             return 'abaikan';

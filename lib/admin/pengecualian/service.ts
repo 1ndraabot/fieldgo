@@ -18,7 +18,14 @@ const gagal = <T>(kode: KodeGagalPengecualian, pesan: string): HasilPengecualian
   ({ ok: false, kode, pesan });
 
 /** Klaim refund yang sudah dibuat store: satu refund per transaksi tertagih. */
-export type KlaimRefund = { refundId: number; orderId: string | null; jumlah: number; adaTagihan: boolean };
+export type KlaimRefund = {
+  refundId: number;
+  orderId: string | null;
+  /** ID transaksi provider (Xendit: invoice id) untuk refund API. */
+  providerRef: string | null;
+  jumlah: number;
+  adaTagihan: boolean;
+};
 
 export type PengecualianDeps = {
   store: PengecualianStore;
@@ -46,9 +53,9 @@ export interface PengecualianStore {
   /** Pembayaran bermasalah terbaru milik pesanan (perlu_tinjau), atau null. */
   pembayaranTinjau(pesananId: number): Promise<PembayaranUntukTinjau | null>;
   /** Percobaan transaksi terakhir pesanan (untuk tarik status gateway). */
-  transaksiTerakhir(kode: string): Promise<{ orderId: string } | null>;
+  transaksiTerakhir(kode: string): Promise<{ orderId: string; providerRef: string | null } | null>;
   /** Transaksi tertagih terbaru (dibayar / perlu_tinjau) untuk refund. */
-  pembayaranTertagih(kode: string): Promise<{ id: number; orderId: string; jumlah: number } | null>;
+  pembayaranTertagih(kode: string): Promise<{ id: number; orderId: string; providerRef: string | null; jumlah: number } | null>;
   /**
    * Terima pembayaran telat: pesanan → Terkonfirmasi + slot dikunci ulang, semua dalam satu
    * transaksi dengan pemeriksaan status dan bentrok slot. Slot dipakai orang lain = SLOT_TERPAKAI.
@@ -81,7 +88,7 @@ async function selesaikanViaGateway(d: PengecualianDeps, klaim: KlaimRefund, now
     return { ok: true, data: { id: klaim.refundId } };
   }
   try {
-    const r = await d.gateway.refund(klaim.orderId, klaim.jumlah, 'Refund pesanan FieldGo');
+    const r = await d.gateway.refund(klaim.orderId, klaim.jumlah, 'Refund pesanan FieldGo', klaim.providerRef);
     if (r.ok) {
       await d.store.perbaruiRefundGateway({ refundId: klaim.refundId, berhasil: true, reference: r.reference, catatan: '', now });
       return { ok: true, data: { id: klaim.refundId } };
@@ -151,7 +158,7 @@ export async function sinkronkan(d: PengecualianDeps, kode: string): Promise<Has
 
   let notif;
   try {
-    notif = await d.gateway.ambilStatus(t.orderId);
+    notif = await d.gateway.ambilStatus(t.orderId, t.providerRef);
   } catch {
     return gagal('GATEWAY_TIDAK_TERJANGKAU', 'Gateway tidak terjangkau. Coba lagi sebentar.');
   }
