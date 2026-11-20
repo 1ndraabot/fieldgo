@@ -9,7 +9,7 @@ const NAV: [IconName, string, string][] = [
   ['card', 'Tarif', '/admin/tarif'],
   ['clock', 'Jam operasional', '/admin/jam-operasional'],
   ['cancel', 'Blacklist', '/admin/blacklist'],
-  ['check', 'Verifikasi', '/admin/verifikasi'],
+  ['check', 'Pembayaran', '/admin/pembayaran'],
   ['calendar', 'Pesanan', '/admin/pesanan'],
   ['search', 'Rekap', '/admin/rekap'],
   ['shield', 'Pengguna', '/admin/pengguna'],

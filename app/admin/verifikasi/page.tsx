@@ -1,15 +1,7 @@
-import type { Metadata } from 'next';
-import { VerifikasiView } from '@/components/admin/VerifikasiView';
-import { getAdminVerifikasi } from '@/lib/demo-fe';
-import { wajibAdmin } from '@/lib/auth/session';
+import { redirect } from 'next/navigation';
 
-export const metadata: Metadata = { title: 'FieldGo — Admin · Verifikasi' };
-
-// FE dulu: data dummy. Aksi setujui/tolak sungguhan (FR-ADM-06/07) menyusul bersama transaksi backend.
-export default async function AdminVerifikasi({ searchParams }: { searchParams: Promise<{ tab?: string | string[] }> }) {
-  const pengguna = await wajibAdmin('/admin/verifikasi');
-  const raw = (await searchParams).tab;
-  const tab = raw === 'batal' ? 'batal' : 'bukti';
-  const { bukti, pembatalan } = getAdminVerifikasi();
-  return <VerifikasiView tab={tab} bukti={bukti} pembatalan={pembatalan} />;
+// Halaman verifikasi lama dipindah: bukti transfer manual kini di alur pembayaran penyewa,
+// putusan pembatalan/refund ada di /admin/pembayaran (FR-ADM-06/07).
+export default function AdminVerifikasi() {
+  redirect('/admin/pembayaran');
 }
