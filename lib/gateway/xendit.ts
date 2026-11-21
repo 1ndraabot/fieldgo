@@ -8,6 +8,8 @@ import type {
 const API_BASE = 'https://api.xendit.co';
 const REFUND_API_VERSION = '2024-11-11';
 const TIMEOUT_MS = 15_000;
+/** Enum yang diterima Refunds API; semua refund FieldGo adalah permintaan pengguna/admin. */
+const ALASAN_REFUND = 'REQUESTED_BY_CUSTOMER';
 
 type FetchImpl = typeof globalThis.fetch;
 
@@ -192,7 +194,7 @@ export function buatXenditGateway(o: OpsiXendit = {}): GatewayProvider {
         : null;
     },
 
-    async refund(_orderId: string, nominal: number, alasan: string, providerRef?: string | null): Promise<HasilRefundGateway> {
+    async refund(_orderId: string, nominal: number, _alasan: string, providerRef?: string | null): Promise<HasilRefundGateway> {
       if (!providerRef) return { ok: false, kode: 'TANPA_REFERENCE' };
 
       const res = await permintaan('/refunds', {
@@ -201,7 +203,9 @@ export function buatXenditGateway(o: OpsiXendit = {}): GatewayProvider {
         body: JSON.stringify({
           invoice_id: providerRef,
           amount: nominal,
-          reason: alasan.slice(0, 255),
+          // Xendit hanya menerima enum untuk reason; teks bebas ditolak 400.
+          // Alasan detail tetap disimpan di catatan refund internal.
+          reason: ALASAN_REFUND,
         }),
       });
 

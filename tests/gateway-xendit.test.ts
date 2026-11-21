@@ -247,7 +247,7 @@ test('refund: wajib invoice id, mengirim body yang benar, dan menerjemahkan kega
   assert.equal(panggilan[0].url, 'https://api.xendit.test/refunds');
   assert.equal((panggilan[0].init.headers as Record<string, string>)['api-version'], '2024-11-11');
   assert.deepEqual(isi(panggilan[0].init), {
-    invoice_id: 'inv-9', amount: 200_000, reason: 'Refund pesanan FieldGo',
+    invoice_id: 'inv-9', amount: 200_000, reason: 'REQUESTED_BY_CUSTOMER',
   });
 
   const { gateway: ditolak } = buat(() => respon({ id: 'ref-2', status: 'failed' }));
