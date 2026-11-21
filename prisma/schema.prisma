@@ -20,6 +20,17 @@ enum PeranPengguna {
   admin
 }
 
+enum JenisToken {
+  verifikasi_email
+  reset_sandi
+}
+
+enum StatusVerifikasi {
+  menunggu
+  disetujui
+  ditolak
+}
+
 enum StatusPesanan {
   menunggu_pembayaran
   menunggu_verifikasi
@@ -123,36 +134,10 @@ model Pengguna {
   dinonaktifkanPada       DateTime?     @map("dinonaktifkan_pada")
   dibuatPada              DateTime      @default(now()) @map("dibuat_pada")
   pesanan                 Pesanan[]
-  tokenAkun               TokenAkun[]
   sesi                    Sesi[]
+  token                   TokenAkun[]
 
   @@map("pengguna")
-}
-
-model TokenAkun {
-  id             Int       @id @default(autoincrement())
-  penggunaId     Int       @map("pengguna_id")
-  jenis          String // 'verifikasi_email'
-  tokenHash      String    @unique @map("token_hash") // hanya hash yang disimpan
-  kedaluwarsaPada DateTime  @map("kedaluwarsa_pada")
-  digunakanPada  DateTime? @map("digunakan_pada")
-  dibuatPada     DateTime  @default(now()) @map("dibuat_pada")
-  pengguna       Pengguna  @relation(fields: [penggunaId], references: [id])
-
-  @@index([penggunaId, jenis])
-  @@map("token_akun")
-}
-
-model Sesi {
-  id              Int      @id @default(autoincrement())
-  penggunaId      Int      @map("pengguna_id")
-  tokenHash       String   @unique @map("token_hash") // hanya hash yang disimpan
-  kedaluwarsaPada DateTime @map("kedaluwarsa_pada")
-  dibuatPada      DateTime @default(now()) @map("dibuat_pada")
-  pengguna        Pengguna @relation(fields: [penggunaId], references: [id])
-
-  @@index([penggunaId])
-  @@map("sesi")
 }
 
 model Pesanan {
@@ -172,6 +157,8 @@ model Pesanan {
   pengguna        Pengguna      @relation(fields: [penggunaId], references: [id])
   lapangan        Lapangan      @relation(fields: [lapanganId], references: [id])
   slot            SlotPesanan[]
+  pembayaran      Pembayaran?
+  riwayat         RiwayatStatus[]
 
   @@index([penggunaId, dibuatPada])
   @@index([status, batasBayarPada])
@@ -192,4 +179,70 @@ model SlotPesanan {
 
   @@index([lapanganId, tanggal])
   @@map("slot_pesanan")
+}
+
+// Sesi login. Cookie berisi token mentah; yang disimpan hanya hash-nya. Baris kedaluwarsa dibersihkan worker (menyusul).
+model Sesi {
+  id              Int      @id @default(autoincrement())
+  penggunaId      Int      @map("pengguna_id")
+  tokenHash       String   @unique @map("token_hash")
+  kedaluwarsaPada DateTime @map("kedaluwarsa_pada")
+  dibuatPada      DateTime @default(now()) @map("dibuat_pada")
+  pengguna        Pengguna @relation(fields: [penggunaId], references: [id], onDelete: Cascade)
+
+  @@index([penggunaId])
+  @@index([kedaluwarsaPada])
+  @@map("sesi")
+}
+
+// Token sekali pakai untuk verifikasi email (dan reset kata sandi nanti).
+model TokenAkun {
+  id              Int        @id @default(autoincrement())
+  penggunaId      Int        @map("pengguna_id")
+  jenis           JenisToken
+  tokenHash       String     @unique @map("token_hash")
+  kedaluwarsaPada DateTime   @map("kedaluwarsa_pada")
+  digunakanPada   DateTime?  @map("digunakan_pada")
+  pengguna        Pengguna   @relation(fields: [penggunaId], references: [id], onDelete: Cascade)
+
+  @@index([penggunaId, jenis])
+  @@map("token_akun")
+}
+
+// Bukti transfer: satu per pesanan (bukti ditolak final, PRD BR-11). Berkas asli ada di storage privat; di sini hanya kunci objeknya.
+model Pembayaran {
+  id               Int              @id @default(autoincrement())
+  pesananId        Int              @unique @map("pesanan_id")
+  berkasBukti      String           @map("berkas_bukti")
+  tipeBerkas       String           @map("tipe_berkas")
+  ukuranBerkas     Int              @map("ukuran_berkas")
+  diunggahPada     DateTime         @map("diunggah_pada")
+  statusVerifikasi StatusVerifikasi @default(menunggu) @map("status_verifikasi")
+  diverifikasiOleh Int?             @map("diverifikasi_oleh")
+  diverifikasiPada DateTime?        @map("diverifikasi_pada")
+  pesanan          Pesanan          @relation(fields: [pesananId], references: [id])
+
+  @@map("pembayaran")
+}
+
+model RiwayatStatus {
+  id         Int            @id @default(autoincrement())
+  pesananId  Int            @map("pesanan_id")
+  statusLama StatusPesanan? @map("status_lama")
+  statusBaru StatusPesanan  @map("status_baru")
+  diubahOleh Int?           @map("diubah_oleh") // kosong = sistem
+  waktu      DateTime
+  catatan    String?
+  pesanan    Pesanan        @relation(fields: [pesananId], references: [id])
+
+  @@index([pesananId])
+  @@map("riwayat_status")
+}
+
+// Pasangan nama-nilai: rekening_bank, rekening_nomor, rekening_nama (PRD Bagian 5/7).
+model Pengaturan {
+  nama  String @id
+  nilai String
+
+  @@map("pengaturan")
 }

@@ -1,11 +1,13 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { DEMO, DEMO_PENGGUNA } from '../demo.ts';
 import { NAMA_COOKIE } from './cookie.ts';
 import { auth } from './deps.ts';
 import { ambilPengguna } from './service.ts';
 
 /** Pengguna dari cookie sesi, atau null. Hanya dipanggil di server (komponen server / route). */
 export async function penggunaSaatIni() {
+  if (DEMO) return DEMO_PENGGUNA; // tanpa database: anggap sudah masuk sebagai pengguna contoh
   const token = (await cookies()).get(NAMA_COOKIE)?.value ?? null;
   return ambilPengguna(auth, token);
 }
