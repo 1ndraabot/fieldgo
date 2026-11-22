@@ -106,7 +106,7 @@ export const prismaGatewayStore: GatewayStore = {
         pembayaranGateway: {
           orderBy: { dibuatPada: 'desc' },
           take: 1,
-          select: { status: true, dibayarPada: true },
+          select: { orderId: true, providerRef: true, status: true, dibayarPada: true },
         },
       },
     });

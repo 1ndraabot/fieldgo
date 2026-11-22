@@ -23,6 +23,7 @@ export const handlersGateway = buatHandlersGateway({
   baseUrl: process.env.APP_URL ?? 'http://localhost:3000',
   auth,
   limiter: buatLimiter({ maks: 10, jendelaMs: 60_000 }), // 10 percobaan bayar / menit / pengguna
+  throttleSinkron: buatLimiter({ maks: 1, jendelaMs: 10_000 }).cek, // 1 tarikan status / 10 detik / pesanan
   gatewayAktif: async () => (await bacaPengaturan()).gatewayAktif,
   metodeAktif: async () => (await bacaPengaturan()).metodeAktif,
 });

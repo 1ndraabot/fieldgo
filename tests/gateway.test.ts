@@ -5,8 +5,8 @@ import {
   putusanNotifikasi, samakanAmanWaktu,
 } from '../lib/gateway/rules.ts';
 import {
-  buatTransaksi, prosesNotifikasi,
-  type GatewayDeps, type GatewayStore, type PesananGateway, type TransaksiTersimpan,
+  buatTransaksi, prosesNotifikasi, sinkronkanMilik,
+  type GatewayDeps, type GatewayStore, type PesananGateway, type StatusPesananGateway, type TransaksiTersimpan,
 } from '../lib/gateway/service.ts';
 import type { BuatTransaksiInput, GatewayProvider, NotifikasiGateway, TransaksiGateway } from '../lib/gateway/types.ts';
 
@@ -303,8 +303,138 @@ test('prosesNotifikasi meneruskan provider dan waktu server ke store', async () 
   assert.equal(s.notifikasi[0].eventKey, 'evt-1');
 });
 
-// ─── peringatanEnvProduksi ──────────────────────────────────────────────────
+// ─── sinkronkanMilik ────────────────────────────────────────────────────────
 
+const TRANSAKSI_PENDING = { orderId: 'FGO-UJI01', providerRef: 'inv-1', status: 'pending' as const, dibayarPada: null };
+
+const NOTIF_DIBAYAR: NotifikasiGateway = {
+  eventKey: 'xendit:invoice:inv-1:PAID',
+  orderId: 'FGO-UJI01',
+  providerRef: 'inv-1',
+  tipe: 'pembayaran',
+  status: 'dibayar',
+  metode: 'QRIS',
+  jumlah: 200_000,
+  waktuBayar: NOW,
+  payload: { status: 'PAID' },
+};
+
+function statusMenunggu(transaksi: StatusPesananGateway['transaksi'] = TRANSAKSI_PENDING): StatusPesananGateway {
+  return { status: 'menunggu_pembayaran', batasBayarPada: PESANAN.batasBayarPada, transaksi };
+}
+
+/** statusPesanan dipanggil berurutan; entri terakhir diulang untuk pembacaan berikutnya. */
+function buatStoreSinkron(urutan: (StatusPesananGateway | null)[]) {
+  const dasar = buatStore();
+  let n = 0;
+  const store: GatewayStore = {
+    ...dasar.store,
+    async statusPesanan() {
+      const v = urutan[Math.min(n, urutan.length - 1)];
+      n += 1;
+      return v;
+    },
+  };
+  return { ...dasar, store };
+}
+
+function buatProviderSinkron(jawab: NotifikasiGateway | null | Error) {
+  const panggilan: { orderId: string; providerRef?: string | null }[] = [];
+  const gateway: GatewayProvider = {
+    ...buatProvider().gateway,
+    async ambilStatus(orderId, providerRef) {
+      panggilan.push({ orderId, providerRef });
+      if (jawab instanceof Error) throw jawab;
+      return jawab;
+    },
+  };
+  return { gateway, panggilan };
+}
+
+test('sinkronkanMilik: pesanan bukan milik sesi ini tidak menyentuh gateway', async () => {
+  const s = buatStoreSinkron([null]);
+  const g = buatProviderSinkron(NOTIF_DIBAYAR);
+
+  assert.deepEqual(await sinkronkanMilik(deps(s.store, g.gateway), PESANAN.kode, 8), { ok: false, kode: 'TIDAK_DITEMUKAN' });
+  assert.equal(g.panggilan.length, 0);
+});
+
+test('sinkronkanMilik: tanpa transaksi pending / provider_ref tidak memanggil gateway', async () => {
+  const kasus: StatusPesananGateway[] = [
+    { ...statusMenunggu(null) },
+    statusMenunggu({ ...TRANSAKSI_PENDING, status: 'dibayar', dibayarPada: NOW }),
+    statusMenunggu({ ...TRANSAKSI_PENDING, providerRef: null }),
+    { status: 'terkonfirmasi', batasBayarPada: PESANAN.batasBayarPada, transaksi: TRANSAKSI_PENDING },
+  ];
+
+  for (const awal of kasus) {
+    const s = buatStoreSinkron([awal]);
+    const g = buatProviderSinkron(NOTIF_DIBAYAR);
+    const r = await sinkronkanMilik(deps(s.store, g.gateway), PESANAN.kode, 7);
+    assert.ok(r.ok);
+    if (r.ok) {
+      assert.equal(r.hasil, null);
+      assert.equal(r.status, awal.status);
+    }
+    assert.equal(g.panggilan.length, 0);
+  }
+});
+
+test('sinkronkanMilik: menarik status, memproses seperti webhook, lalu membaca ulang status pesanan', async () => {
+  const s = buatStoreSinkron([
+    statusMenunggu(),
+    {
+      status: 'terkonfirmasi',
+      batasBayarPada: PESANAN.batasBayarPada,
+      transaksi: { ...TRANSAKSI_PENDING, status: 'dibayar', dibayarPada: NOW },
+    },
+  ]);
+  const g = buatProviderSinkron(NOTIF_DIBAYAR);
+  let batas = 0;
+  const d: GatewayDeps = {
+    ...deps(s.store, g.gateway),
+    throttleSinkron: () => { batas += 1; return { diizinkan: true, ulangiDetik: 0 }; },
+  };
+
+  const r = await sinkronkanMilik(d, PESANAN.kode, 7);
+  assert.ok(r.ok);
+  if (!r.ok) return;
+  assert.equal(r.status, 'terkonfirmasi');
+  assert.equal(r.transaksi?.status, 'dibayar');
+  assert.deepEqual(r.transaksi?.dibayarPada, NOW);
+  assert.equal(r.hasil, 'ok');
+  assert.equal(batas, 1);
+  assert.deepEqual(g.panggilan, [{ orderId: 'FGO-UJI01', providerRef: 'inv-1' }]);
+  assert.equal(s.notifikasi.length, 1);
+  assert.equal(s.notifikasi[0].provider, 'fake');
+});
+
+test('sinkronkanMilik: pembatas per pesanan mencegah panggilan gateway beruntun', async () => {
+  const s = buatStoreSinkron([statusMenunggu()]);
+  const g = buatProviderSinkron(NOTIF_DIBAYAR);
+  const d: GatewayDeps = { ...deps(s.store, g.gateway), throttleSinkron: () => ({ diizinkan: false, ulangiDetik: 7 }) };
+
+  assert.deepEqual(await sinkronkanMilik(d, PESANAN.kode, 7), { ok: false, kode: 'DIBATASI', ulangiDetik: 7 });
+  assert.equal(g.panggilan.length, 0);
+});
+
+test('sinkronkanMilik: provider tanpa info atau tak terjangkau dilaporkan tanpa mengubah apa pun', async () => {
+  const s = buatStoreSinkron([statusMenunggu()]);
+  const kosong = buatProviderSinkron(null);
+  assert.deepEqual(
+    await sinkronkanMilik(deps(s.store, kosong.gateway), PESANAN.kode, 7),
+    { ok: false, kode: 'BELUM_ADA_INFO' },
+  );
+
+  const putus = buatProviderSinkron(new Error('jaringan putus'));
+  assert.deepEqual(
+    await sinkronkanMilik(deps(s.store, putus.gateway), PESANAN.kode, 7),
+    { ok: false, kode: 'GATEWAY_TIDAK_TERJANGKAU' },
+  );
+  assert.equal(s.notifikasi.length, 0);
+});
+
+// ─── peringatanEnvProduksi ──────────────────────────────────────────────────
 test('peringatanEnvProduksi: konfigurasi live lengkap → tanpa peringatan', () => {
   assert.deepEqual(peringatanEnvProduksi({
     provider: 'xendit',

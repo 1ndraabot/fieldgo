@@ -40,7 +40,7 @@ export type HasilNotifikasi =
 export type StatusPesananGateway = {
   status: StatusPesanan;
   batasBayarPada: Date;
-  transaksi: { status: StatusBayar; dibayarPada: Date | null } | null;
+  transaksi: { orderId: string; providerRef: string | null; status: StatusBayar; dibayarPada: Date | null } | null;
 };
 
 export interface GatewayStore {
@@ -68,6 +68,8 @@ export type GatewayDeps = {
   baseUrl: string;
   /** Metode pembayaran aktif dari Pengaturan; kosong = semua metode akun gateway. */
   metodeAktif?: () => Promise<string[]>;
+  /** Pembatas panggilan sinkron per pesanan (jendela geser di memori proses). */
+  throttleSinkron?: (kunci: string) => { diizinkan: boolean; ulangiDetik: number };
 };
 
 export type HasilBuat =
@@ -159,4 +161,59 @@ export async function buatTransaksi(d: GatewayDeps, i: { penggunaId: number; kod
 
 export async function prosesNotifikasi(d: GatewayDeps, notif: NotifikasiGateway): Promise<HasilNotifikasi> {
   return d.store.prosesNotifikasi({ ...notif, provider: d.gateway.nama, now: d.sekarang() });
+}
+
+export type HasilSinkron =
+  | {
+      ok: true;
+      status: StatusPesanan;
+      batasBayarPada: Date;
+      transaksi: { status: StatusBayar; dibayarPada: Date | null } | null;
+      /** Hasil pemrosesan notifikasi; null bila tidak ada yang perlu ditarik dari gateway. */
+      hasil: HasilNotifikasi | null;
+    }
+  | {
+      ok: false;
+      kode: 'TIDAK_DITEMUKAN' | 'DIBATASI' | 'BELUM_ADA_INFO' | 'GATEWAY_TIDAK_TERJANGKAU';
+      ulangiDetik?: number;
+    };
+
+/**
+ * Sinkron otomatis milik penyewa (pengaman bila callback telat/gagal). Hanya menyentuh
+ * pesanan milik sesi ini, hanya saat transaksi masih `pending`, dan memakai jalur yang
+ * sama dengan webhook (`ambilStatus` → `prosesNotifikasi`, idempoten). Hasil akhirnya
+ * tetap dibaca ulang dari basis data, bukan dari tebakan.
+ */
+export async function sinkronkanMilik(d: GatewayDeps, kode: string, penggunaId: number): Promise<HasilSinkron> {
+  const awal = await d.store.statusPesanan(kode, penggunaId);
+  if (!awal) return { ok: false, kode: 'TIDAK_DITEMUKAN' };
+
+  const t = awal.transaksi;
+  const ringkas = { status: awal.status, batasBayarPada: awal.batasBayarPada, transaksi: t };
+  if (awal.status !== 'menunggu_pembayaran' || !t || t.status !== 'pending' || !t.providerRef) {
+    return { ok: true, ...ringkas, hasil: null };
+  }
+
+  // Batasi panggilan keluar per pesanan: poller 15 detik tetap aman walau tab dibuka ganda.
+  const batas = d.throttleSinkron?.(`sinkron:${penggunaId}:${kode}`);
+  if (batas && !batas.diizinkan) return { ok: false, kode: 'DIBATASI', ulangiDetik: batas.ulangiDetik };
+
+  let notif: NotifikasiGateway | null;
+  try {
+    notif = await d.gateway.ambilStatus(t.orderId, t.providerRef);
+  } catch (e) {
+    console.error('[gateway] sinkron gagal menghubungi provider', e);
+    return { ok: false, kode: 'GATEWAY_TIDAK_TERJANGKAU' };
+  }
+  if (!notif) return { ok: false, kode: 'BELUM_ADA_INFO' };
+
+  const hasil = await prosesNotifikasi(d, notif);
+  const sesudah = await d.store.statusPesanan(kode, penggunaId);
+  return {
+    ok: true,
+    status: sesudah?.status ?? awal.status,
+    batasBayarPada: sesudah?.batasBayarPada ?? awal.batasBayarPada,
+    transaksi: sesudah?.transaksi ?? t,
+    hasil,
+  };
 }

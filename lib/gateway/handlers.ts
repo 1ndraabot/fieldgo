@@ -4,7 +4,7 @@ import { ambilPengguna, type AuthDeps } from '../auth/service.ts';
 import { DEMO } from '../demo.ts';
 import { statusTampil } from '../riwayat/rules.ts';
 import { galatServer, json } from '../admin/http.ts';
-import { buatTransaksi, prosesNotifikasi, type GatewayDeps } from './service.ts';
+import { buatTransaksi, prosesNotifikasi, sinkronkanMilik, type GatewayDeps } from './service.ts';
 
 export type GatewayHandlerDeps = GatewayDeps & {
   auth: AuthDeps;
@@ -67,6 +67,36 @@ export function buatHandlersGateway(d: GatewayHandlerDeps) {
           status: statusTampil(r.status, r.batasBayarPada, d.sekarang()),
           statusBayar: r.transaksi?.status ?? null,
           dibayarPada: r.transaksi?.dibayarPada?.toISOString() ?? null,
+        });
+      } catch (e) {
+        return galatServer('gateway', e);
+      }
+    },
+
+    /** POST /api/pesanan/[kode]/sinkron — tarik status gateway untuk pesanan milik sesi ini. */
+    sinkron: async (req: Request, kode: string) => {
+      try {
+        if (DEMO) return json(503, { ok: false, kode: 'MODE_DEMO' });
+        if (!jsonWajib(req)) return json(415, { ok: false, kode: 'MEDIA_TIDAK_DIDUKUNG' });
+        const p = await penggunaDari(req);
+        if (!p) return json(401, { ok: false, kode: 'TIDAK_LOGIN' });
+        if (!KODE.test(kode)) return json(404, { ok: false, kode: 'TIDAK_DITEMUKAN' });
+
+        const r = await sinkronkanMilik(d, kode, p.id);
+        if (!r.ok) {
+          const status = r.kode === 'TIDAK_DITEMUKAN' ? 404
+            : r.kode === 'DIBATASI' ? 429
+            : r.kode === 'BELUM_ADA_INFO' ? 409
+            : 502;
+          return json(status, { ok: false, kode: r.kode, ...(r.ulangiDetik === undefined ? {} : { ulangiDetik: r.ulangiDetik }) });
+        }
+
+        return json(200, {
+          ok: true,
+          status: statusTampil(r.status, r.batasBayarPada, d.sekarang()),
+          statusBayar: r.transaksi?.status ?? null,
+          dibayarPada: r.transaksi?.dibayarPada?.toISOString() ?? null,
+          hasil: r.hasil,
         });
       } catch (e) {
         return galatServer('gateway', e);
