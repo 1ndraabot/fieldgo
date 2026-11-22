@@ -136,3 +136,30 @@ export function samakanAmanWaktu(diterima: string, diharapkan: string): boolean 
 
 /** Nominal notifikasi harus sama persis dengan nominal yang disimpan saat transaksi dibuat. */
 export const nominalCocok = (notif: number | null, db: number): boolean => notif === null || notif === db;
+
+/**
+ * Peringatan salah konfigurasi env gateway untuk deploy produksi; kosong berarti aman.
+ * Kesalahan di sini baru terasa saat pembayaran (kunci test di live, token kosong membuat
+ * semua callback 401, APP_URL tidak HTTPS membuat redirect/callback gagal), jadi dicek
+ * lebih awal saat server produksi menyala.
+ */
+export function peringatanEnvProduksi(e: {
+  provider: string;
+  secretKey?: string;
+  callbackToken?: string;
+  appUrl?: string;
+}): string[] {
+  if (e.provider !== 'xendit') {
+    // `fake` sengaja diblokir di produksi oleh pilihGateway(); provider lain belum dikenal.
+    return [`GATEWAY_PROVIDER="${e.provider}" tidak aktif di produksi — isi "xendit".`];
+  }
+  const hasil: string[] = [];
+  if (!e.secretKey) hasil.push('XENDIT_SECRET_KEY kosong — invoice tidak bisa dibuat.');
+  else if (e.secretKey.startsWith('xnd_development_')) {
+    hasil.push('XENDIT_SECRET_KEY masih kunci test (xnd_development_) — pakai kunci live (xnd_production_).');
+  }
+  if (!e.callbackToken) hasil.push('XENDIT_CALLBACK_TOKEN kosong — semua callback ditolak 401 sehingga pembayaran tak terkonfirmasi otomatis.');
+  if (!e.appUrl) hasil.push('APP_URL kosong — redirect Xendit akan memakai http://localhost:3000.');
+  else if (!e.appUrl.startsWith('https://')) hasil.push('APP_URL bukan HTTPS — Xendit memerlukan URL publik HTTPS untuk redirect/callback.');
+  return hasil;
+}

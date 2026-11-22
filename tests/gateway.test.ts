@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  durasiInvoiceDetik, nominalCocok, petakanMetodeXendit, petakanStatusRefundXendit, petakanStatusXendit,
+  durasiInvoiceDetik, nominalCocok, peringatanEnvProduksi, petakanMetodeXendit, petakanStatusRefundXendit, petakanStatusXendit,
   putusanNotifikasi, samakanAmanWaktu,
 } from '../lib/gateway/rules.ts';
 import {
@@ -301,4 +301,56 @@ test('prosesNotifikasi meneruskan provider dan waktu server ke store', async () 
   assert.equal(s.notifikasi[0].provider, 'xendit');
   assert.deepEqual(s.notifikasi[0].now, NOW);
   assert.equal(s.notifikasi[0].eventKey, 'evt-1');
+});
+
+// ─── peringatanEnvProduksi ──────────────────────────────────────────────────
+
+test('peringatanEnvProduksi: konfigurasi live lengkap → tanpa peringatan', () => {
+  assert.deepEqual(peringatanEnvProduksi({
+    provider: 'xendit',
+    secretKey: 'xnd_production_abc123',
+    callbackToken: 'token-callback',
+    appUrl: 'https://fieldgo.id',
+  }), []);
+});
+
+test('peringatanEnvProduksi: kunci test dipakai di produksi diberi peringatan', () => {
+  const p = peringatanEnvProduksi({
+    provider: 'xendit',
+    secretKey: 'xnd_development_abc123',
+    callbackToken: 'token-callback',
+    appUrl: 'https://fieldgo.id',
+  });
+  assert.equal(p.length, 1);
+  assert.match(p[0], /kunci test/);
+});
+
+test('peringatanEnvProduksi: token kosong dan APP_URL non-HTTPS diberi peringatan', () => {
+  const p = peringatanEnvProduksi({
+    provider: 'xendit',
+    secretKey: 'xnd_production_abc123',
+    appUrl: 'http://localhost:3000',
+  });
+  assert.equal(p.length, 2);
+  assert.match(p[0], /XENDIT_CALLBACK_TOKEN/);
+  assert.match(p[1], /HTTPS/);
+});
+
+test('peringatanEnvProduksi: APP_URL dan secret key kosong diberi peringatan', () => {
+  const p = peringatanEnvProduksi({ provider: 'xendit' });
+  assert.equal(p.length, 3);
+  assert.match(p[0], /XENDIT_SECRET_KEY kosong/);
+  assert.match(p[1], /XENDIT_CALLBACK_TOKEN kosong/);
+  assert.match(p[2], /APP_URL kosong/);
+});
+
+test('peringatanEnvProduksi: provider selain xendit tidak aktif di produksi', () => {
+  const p = peringatanEnvProduksi({
+    provider: 'fake',
+    secretKey: 'xnd_production_abc123',
+    callbackToken: 'token-callback',
+    appUrl: 'https://fieldgo.id',
+  });
+  assert.equal(p.length, 1);
+  assert.match(p[0], /GATEWAY_PROVIDER/);
 });

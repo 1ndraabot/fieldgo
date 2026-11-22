@@ -3,7 +3,18 @@ import { auth } from '../auth/deps.ts';
 import { buatLimiter } from '../auth/ratelimit.ts';
 import { buatHandlersGateway } from './handlers.ts';
 import { pilihGateway } from './index.ts';
+import { peringatanEnvProduksi } from './rules.ts';
 import { prismaGatewayStore } from './prisma-store.ts';
+
+// Salah konfigurasi di produksi baru terasa saat pembayaran; peringatkan sejak server menyala.
+if (process.env.NODE_ENV === 'production') {
+  for (const pesan of peringatanEnvProduksi({
+    provider: (process.env.GATEWAY_PROVIDER ?? 'xendit').toLowerCase(),
+    secretKey: process.env.XENDIT_SECRET_KEY,
+    callbackToken: process.env.XENDIT_CALLBACK_TOKEN,
+    appUrl: process.env.APP_URL,
+  })) console.warn(`[gateway] ${pesan}`);
+}
 
 export const handlersGateway = buatHandlersGateway({
   store: prismaGatewayStore,
