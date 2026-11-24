@@ -94,7 +94,7 @@ export default function PengaturanForm({ data }: { data: Pengaturan }) {
         <div className="grid gap-4 sm:grid-cols-2">
           <Field id="bayarJam" label="Batas bayar (jam)">
             <TeksInput id="bayarJam" value={bayarJam} onChange={(v) => { setBayarJam(v.replace(/[^\d]/g, '')); setGalat(''); }}
-              autoComplete="off" type="number" placeholder="24" />
+              autoComplete="off" type="number" placeholder="1" />
           </Field>
           <Field id="batalHari" label="Batas pengajuan batal (hari sebelum main)">
             <TeksInput id="batalHari" value={batalHari} onChange={(v) => { setBatalHari(v.replace(/[^\d]/g, '')); setGalat(''); }}

@@ -51,24 +51,40 @@ export const prismaGatewayStore: GatewayStore = {
     const t = await db.pembayaranGateway.findFirst({
       where: { pesananId, status: 'pending', kedaluwarsaPada: { gt: now } },
       orderBy: { dibuatPada: 'desc' },
-      select: { orderId: true, providerRef: true, token: true, redirectUrl: true, status: true, kedaluwarsaPada: true },
+      select: { orderId: true, providerRef: true, token: true, redirectUrl: true, status: true, kedaluwarsaPada: true, metode: true },
     });
-    return t && t.redirectUrl
-      ? { orderId: t.orderId, providerRef: t.providerRef, token: t.token, redirectUrl: t.redirectUrl, status: t.status, kedaluwarsaPada: t.kedaluwarsaPada }
+    return t
+      ? {
+          orderId: t.orderId, providerRef: t.providerRef, token: t.token, redirectUrl: t.redirectUrl,
+          status: t.status, kedaluwarsaPada: t.kedaluwarsaPada, metode: t.metode,
+        }
       : null;
   },
 
   hitungPercobaan: (pesananId) => db.pembayaranGateway.count({ where: { pesananId } }),
 
+  async tutupTransaksiPending(orderId, _now) {
+    await db.pembayaranGateway.updateMany({
+      where: { orderId, status: 'pending' },
+      data: { status: 'gagal', alasanTinjau: 'DIGANTI_METODE' },
+    });
+  },
+
   async simpanTransaksi(d) {
-    const pilih = { orderId: true, providerRef: true, token: true, redirectUrl: true, status: true, kedaluwarsaPada: true } as const;
-    const rapikan = (t: { orderId: string; providerRef: string | null; token: string | null; redirectUrl: string | null; status: StatusBayar; kedaluwarsaPada: Date | null }) => ({
+    const pilih = {
+      orderId: true, providerRef: true, token: true, redirectUrl: true, status: true, kedaluwarsaPada: true, metode: true,
+    } as const;
+    const rapikan = (t: {
+      orderId: string; providerRef: string | null; token: string | null; redirectUrl: string | null;
+      status: StatusBayar; kedaluwarsaPada: Date | null; metode: string | null;
+    }) => ({
       orderId: t.orderId,
       providerRef: t.providerRef,
       token: t.token,
-      redirectUrl: t.redirectUrl ?? '',
+      redirectUrl: t.redirectUrl,
       status: t.status,
       kedaluwarsaPada: t.kedaluwarsaPada,
+      metode: t.metode,
     });
 
     try {
@@ -82,6 +98,7 @@ export const prismaGatewayStore: GatewayStore = {
           token: d.token,
           redirectUrl: d.redirectUrl,
           kedaluwarsaPada: d.kedaluwarsaPada,
+          metode: d.metode,
         },
         select: pilih,
       });

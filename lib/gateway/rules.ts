@@ -2,6 +2,12 @@ import { timingSafeEqual } from 'node:crypto';
 import type { StatusPesanan } from '../slots.ts';
 import type { StatusBayar } from './types.ts';
 
+// Helper katalog kanal bebas Node; re-export agar pemanggil server cukup satu impor.
+export {
+  KANAL_BAYAR, kanalAktif, kanalDari, instruksiDariTransaksi, metodeDiizinkan,
+  type GrupKanal, type KanalBayar,
+} from './kanal.ts';
+
 /** Keputusan yang boleh diambil dari satu notifikasi. Fungsi murni, diuji tanpa database. */
 export type PutusanNotifikasi =
   | 'konfirmasi'
@@ -62,6 +68,27 @@ export function putusanNotifikasi(i: {
       return 'perlu_tinjau';
     default:
       return 'abaikan';
+  }
+}
+
+/** Mapping status Payment Requests v3 ke status internal. */
+export function petakanStatusPaymentRequest(status: string): StatusBayar {
+  switch (status.toUpperCase()) {
+    case 'SUCCEEDED':
+      return 'dibayar';
+    case 'REQUIRES_ACTION':
+    case 'PENDING':
+    case 'ACCEPTING_PAYMENTS':
+    case 'AUTHORIZED':
+      return 'pending';
+    case 'EXPIRED':
+      return 'kedaluwarsa';
+    case 'FAILED':
+    case 'CANCELED':
+    case 'CANCELLED':
+      return 'gagal';
+    default:
+      return 'perlu_tinjau';
   }
 }
 
@@ -138,6 +165,15 @@ export function samakanAmanWaktu(diterima: string, diharapkan: string): boolean 
 export const nominalCocok = (notif: number | null, db: number): boolean => notif === null || notif === db;
 
 /**
+ * Simulasi pembayaran test mode hanya untuk pengembangan: provider Xendit dengan kunci
+ * test (xnd_development_) dan bukan production. Menentukan tampilnya tombol
+ * "selesaikan pembayaran" yang memicu endpoint simulasi resmi Xendit.
+ */
+export function simulasiTestAktif(e: { provider: string; secretKey?: string; nodeEnv: string }): boolean {
+  return e.nodeEnv !== 'production' && e.provider === 'xendit' && (e.secretKey ?? '').startsWith('xnd_development_');
+}
+
+/**
  * Peringatan salah konfigurasi env gateway untuk deploy produksi; kosong berarti aman.
  * Kesalahan di sini baru terasa saat pembayaran (kunci test di live, token kosong membuat
  * semua callback 401, APP_URL tidak HTTPS membuat redirect/callback gagal), jadi dicek
@@ -154,7 +190,7 @@ export function peringatanEnvProduksi(e: {
     return [`GATEWAY_PROVIDER="${e.provider}" tidak aktif di produksi — isi "xendit".`];
   }
   const hasil: string[] = [];
-  if (!e.secretKey) hasil.push('XENDIT_SECRET_KEY kosong — invoice tidak bisa dibuat.');
+  if (!e.secretKey) hasil.push('XENDIT_SECRET_KEY kosong — transaksi tidak bisa dibuat.');
   else if (e.secretKey.startsWith('xnd_development_')) {
     hasil.push('XENDIT_SECRET_KEY masih kunci test (xnd_development_) — pakai kunci live (xnd_production_).');
   }

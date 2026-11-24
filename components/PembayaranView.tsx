@@ -131,7 +131,10 @@ export function PembayaranView({ pengguna, data, now }: { pengguna: { nama: stri
                           <BayarSekarang
                             kode={data.kode}
                             gatewayAktif={data.gatewayAktif}
-                            transaksi={data.transaksi ? { redirectUrl: data.transaksi.redirectUrl, status: data.transaksi.status } : null}
+                            modeSimulasi={data.modeSimulasi}
+                            simulasiTest={data.simulasiTest}
+                            kanal={data.kanal}
+                            transaksi={data.transaksi}
                           />
                         </div>
                       </>
@@ -141,7 +144,7 @@ export function PembayaranView({ pengguna, data, now }: { pengguna: { nama: stri
                   {!ditinjau && <BatalkanPesanan kode={data.kode} />}
 
                   <p className="m-0 text-sm leading-relaxed text-muted">
-                    Metode pembayaran dipilih di halaman gateway. Status pesanan diperbarui otomatis setelah pembayaran diterima.
+                    Pilih metode pembayaran di halaman ini. QRIS dan virtual account ditampilkan langsung; e-wallet membuka aplikasinya sebentar. Status pesanan diperbarui otomatis setelah pembayaran diterima.
                   </p>
 
                   <StatusPembayaran kode={data.kode} aktif={!ditinjau} />

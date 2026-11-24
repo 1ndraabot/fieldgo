@@ -18,8 +18,14 @@ const STATUS: Record<string, number> = {
   STATUS_BERUBAH: 409,
   KEDALUWARSA: 410,
   BATAS_PERCOBAAN: 409,
+  METODE_TIDAK_VALID: 400,
+  VALIDASI: 400,
   GATEWAY_GAGAL: 502,
   GATEWAY_NONAKTIF: 503,
+  BELUM_ADA_TAGIHAN: 409,
+  TIDAK_DIDUKUNG: 400,
+  HANYA_TEST: 403,
+  BUKAN_PAYMENT_REQUEST: 400,
 };
 
 export function buatHandlersGateway(d: GatewayHandlerDeps) {
@@ -42,7 +48,21 @@ export function buatHandlersGateway(d: GatewayHandlerDeps) {
 
         if (!(await d.gatewayAktif())) return json(503, { ok: false, kode: 'GATEWAY_NONAKTIF' });
 
-        const r = await buatTransaksi(d, { penggunaId: p.id, kode });
+        // Body opsional: { metode: "QRIS" }. Kosong = alur invoice v2 lama.
+        let body: Record<string, unknown> = {};
+        const mentah = await req.text();
+        if (mentah.trim()) {
+          try {
+            const v: unknown = JSON.parse(mentah);
+            if (!v || typeof v !== 'object' || Array.isArray(v)) return json(400, { ok: false, kode: 'VALIDASI' });
+            body = v as Record<string, unknown>;
+          } catch {
+            return json(400, { ok: false, kode: 'VALIDASI' });
+          }
+        }
+        const metode = typeof body.metode === 'string' ? body.metode.trim() : null;
+
+        const r = await buatTransaksi(d, { penggunaId: p.id, kode, metode });
         return r.ok
           ? json(200, { ok: true, ...r.transaksi })
           : json(STATUS[r.kode] ?? 400, { ok: false, kode: r.kode });
@@ -98,6 +118,39 @@ export function buatHandlersGateway(d: GatewayHandlerDeps) {
           dibayarPada: r.transaksi?.dibayarPada?.toISOString() ?? null,
           hasil: r.hasil,
         });
+      } catch (e) {
+        return galatServer('gateway', e);
+      }
+    },
+
+    /**
+     * POST /api/pesanan/[kode]/simulasi-test — [hanya pengembangan] selesaikan tagihan
+     * test mode Xendit lewat endpoint simulasi resmi. Status akhir tidak dikira-kira di
+     * sini: poller sinkron/webhook yang membaca ulang dari provider (idempoten).
+     */
+    simulasiTest: async (req: Request, kode: string) => {
+      try {
+        // Di produksi endpoint ini seolah tidak ada.
+        if (process.env.NODE_ENV === 'production') return json(404, { ok: false, kode: 'TIDAK_DITEMUKAN' });
+        if (DEMO) return json(503, { ok: false, kode: 'MODE_DEMO' });
+        if (!jsonWajib(req)) return json(415, { ok: false, kode: 'MEDIA_TIDAK_DIDUKUNG' });
+        const p = await penggunaDari(req);
+        if (!p) return json(401, { ok: false, kode: 'TIDAK_LOGIN' });
+        if (!KODE.test(kode)) return json(404, { ok: false, kode: 'TIDAK_DITEMUKAN' });
+
+        const pesanan = await d.store.cariPesananMilik(kode, p.id);
+        if (!pesanan) return json(404, { ok: false, kode: 'TIDAK_DITEMUKAN' });
+        if (pesanan.status !== 'menunggu_pembayaran') return json(409, { ok: false, kode: 'STATUS_BERUBAH' });
+        if (pesanan.batasBayarPada.getTime() <= d.sekarang().getTime()) return json(410, { ok: false, kode: 'KEDALUWARSA' });
+
+        const t = await d.store.transaksiAktif(pesanan.id, d.sekarang());
+        if (!t || t.status !== 'pending' || !t.providerRef) return json(409, { ok: false, kode: 'BELUM_ADA_TAGIHAN' });
+        if (!d.gateway.simulasikanPembayaran) return json(400, { ok: false, kode: 'TIDAK_DIDUKUNG' });
+
+        const r = await d.gateway.simulasikanPembayaran(t.orderId, t.providerRef, pesanan.totalHarga);
+        return r.ok
+          ? json(200, { ok: true, kode: 'SIMULASI_TERKIRIM' })
+          : json(STATUS[r.kode] ?? 400, { ok: false, kode: r.kode });
       } catch (e) {
         return galatServer('gateway', e);
       }

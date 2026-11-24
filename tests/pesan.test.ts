@@ -57,12 +57,14 @@ test('rincianHarga: harga lintas rentang tarif dan aturan weekend (AC-05)', () =
   assert.equal(tipeHari(JUMAT), 'weekday');
 });
 
-test('batasBayar = min(dibuat + 24 jam, jam mulai main) dalam WIB (BR-07)', () => {
-  // Dibuat 09.00 WIB untuk main dua hari lagi: batas = +24 jam.
-  assert.equal(batasBayar(NOW, '2026-11-20', 8).toISOString(), '2026-11-19T02:00:00.000Z');
-  // Dibuat 20.00 WIB untuk main besok 08.00: batas = jam main.
+test('batasBayar = min(dibuat + 1 jam default, jam mulai main) dalam WIB (BR-07)', () => {
+  // Dibuat 09.00 WIB untuk main dua hari lagi: batas = +1 jam (default baru).
+  assert.equal(batasBayar(NOW, '2026-11-20', 8).toISOString(), '2026-11-18T03:00:00.000Z');
+  // Dibuat 20.00 WIB untuk main besok 08.00: +1 jam (21.00 WIB) lebih dekat daripada jam main.
   const malam = new Date('2026-11-18T13:00:00Z');
-  assert.equal(batasBayar(malam, '2026-11-19', 8).toISOString(), '2026-11-19T01:00:00.000Z');
+  assert.equal(batasBayar(malam, '2026-11-19', 8).toISOString(), '2026-11-18T14:00:00.000Z');
+  // Nilai lama 24 jam masih bisa dipakai lewat Pengaturan.
+  assert.equal(batasBayar(NOW, '2026-11-20', 8, 24).toISOString(), '2026-11-19T02:00:00.000Z');
 });
 
 test('batasBayar: batas jam dari Pengaturan tetap tidak melewati jam mulai main (BR-07)', () => {

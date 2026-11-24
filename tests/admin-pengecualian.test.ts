@@ -232,6 +232,7 @@ function buatGatewayStore(hasil: HasilNotifikasi = 'ok') {
     async transaksiAktif() { throw new Error('tidak dipakai'); },
     async hitungPercobaan() { throw new Error('tidak dipakai'); },
     async simpanTransaksi() { throw new Error('tidak dipakai'); },
+    async tutupTransaksiPending() { throw new Error('tidak dipakai'); },
     async statusPesanan() { throw new Error('tidak dipakai'); },
     async prosesNotifikasi(n) {
       diproses.push({ orderId: n.orderId, status: n.status });

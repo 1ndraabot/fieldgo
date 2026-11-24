@@ -26,7 +26,7 @@ export interface PesanStore {
 export type PesanDeps = {
   store: PesanStore;
   sekarang: () => Date;
-  /** Batas bayar global (jam) dari Pengaturan; kosong = 24 jam. */
+  /** Batas bayar global (jam) dari Pengaturan; kosong = 1 jam. */
   batasBayarJam?: () => Promise<number>;
 };
 
@@ -57,7 +57,7 @@ export async function pesan(d: PesanDeps, i: PesanInput & { penggunaId: number; 
   }
   if (jam.some((j) => bentrok.has(j))) return { ok: false, kode: 'TIDAK_TERSEDIA' };
 
-  const batasJam = d.batasBayarJam ? await d.batasBayarJam() : 24;
+  const batasJam = d.batasBayarJam ? await d.batasBayarJam() : 1;
   const hasil = await d.store.buat({
     kode: kodePesanan(), penggunaId: i.penggunaId, lapanganId: i.lapanganId, tanggal: i.tanggal,
     mulai: i.mulai, selesai: i.selesai, jumlahJam: jam.length,

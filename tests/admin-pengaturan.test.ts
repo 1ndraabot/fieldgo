@@ -9,7 +9,7 @@ const VALID: InputPengaturan = {
   batasBayarJam: 24,
   batasPembatalanHari: 1,
   gatewayAktif: true,
-  metodeAktif: ['qris', 'gopay'],
+  metodeAktif: ['qris', 'dana'],
 };
 
 test('validasiPengaturan: nilai batas 1–72 jam dan 1–7 hari diterima', () => {
@@ -42,13 +42,13 @@ test('normalisasiPengaturan: angka string, metode unik, dan rekening dirapikan',
     batasBayarJam: '12',
     batasPembatalanHari: '3',
     gatewayAktif: true,
-    metodeAktif: ['qris', 'qris', ' gopay ', 5, ''],
+    metodeAktif: ['qris', 'qris', ' dana ', 5, ''],
   });
 
   assert.equal(n.batasBayarJam, 12);
   assert.equal(n.batasPembatalanHari, 3);
   assert.equal(n.gatewayAktif, true);
-  assert.deepEqual(n.metodeAktif, ['qris', 'gopay']);
+  assert.deepEqual(n.metodeAktif, ['qris', 'dana']);
   assert.deepEqual(n.rekening, { bank: 'Bank BCA', nomor: '1234 567 890', atasNama: 'FieldGo' });
 });
 

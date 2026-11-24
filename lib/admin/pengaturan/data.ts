@@ -14,7 +14,7 @@ export type Pengaturan = {
 
 export const DEFAULT_PENGATURAN: Pengaturan = {
   rekening: null,
-  batasBayarJam: 24,
+  batasBayarJam: 1,
   batasPembatalanHari: 1,
   gatewayAktif: true,
   metodeAktif: [],

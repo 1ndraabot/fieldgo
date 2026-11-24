@@ -36,9 +36,9 @@ export function mulaiMain(tanggal: string, jam: number): Date {
 
 /**
  * `batas_bayar_pada` = min(pesanan dibuat + batas jam dari Pengaturan, jam mulai main) — BR-07.
- * `batasJam` default 24 agar pemanggil lama tetap aman.
+ * `batasJam` default 1 jam agar slot tidak tertahan lama; admin tetap bisa menaikkan.
  */
-export function batasBayar(dibuat: Date, tanggal: string, jamMulai: number, batasJam = 24): Date {
+export function batasBayar(dibuat: Date, tanggal: string, jamMulai: number, batasJam = 1): Date {
   const mulai = mulaiMain(tanggal, jamMulai);
   const batas = new Date(dibuat.getTime() + batasJam * 3600_000);
   return mulai < batas ? mulai : batas;

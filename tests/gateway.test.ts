@@ -1,7 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  durasiInvoiceDetik, nominalCocok, peringatanEnvProduksi, petakanMetodeXendit, petakanStatusRefundXendit, petakanStatusXendit,
+  durasiInvoiceDetik, instruksiDariTransaksi, kanalAktif, metodeDiizinkan, nominalCocok, peringatanEnvProduksi,
+  petakanMetodeXendit, petakanStatusPaymentRequest, petakanStatusRefundXendit, petakanStatusXendit,
   putusanNotifikasi, samakanAmanWaktu,
 } from '../lib/gateway/rules.ts';
 import {
@@ -30,6 +31,7 @@ const PESANAN: PesananGateway = {
 function buatStore(pesanan: PesananGateway | null = PESANAN, awal: TransaksiTersimpan[] = []) {
   const transaksi = [...awal];
   const notifikasi: (NotifikasiGateway & { provider: string; now: Date })[] = [];
+  const ditutup: string[] = [];
 
   const store: GatewayStore = {
     async cariPesananMilik(kode, penggunaId) {
@@ -47,6 +49,11 @@ function buatStore(pesanan: PesananGateway | null = PESANAN, awal: TransaksiTers
       transaksi.push(t);
       return t;
     },
+    async tutupTransaksiPending(orderId) {
+      ditutup.push(orderId);
+      const t = transaksi.find((x) => x.orderId === orderId && x.status === 'pending');
+      if (t) t.status = 'gagal';
+    },
     async statusPesanan() {
       return null;
     },
@@ -56,11 +63,12 @@ function buatStore(pesanan: PesananGateway | null = PESANAN, awal: TransaksiTers
     },
   };
 
-  return { store, transaksi, notifikasi };
+  return { store, transaksi, notifikasi, ditutup };
 }
 
 function buatProvider(nama = 'fake') {
   const dipanggil: BuatTransaksiInput[] = [];
+  const dibatalkan: string[] = [];
 
   const gateway: GatewayProvider = {
     nama,
@@ -72,14 +80,19 @@ function buatProvider(nama = 'fake') {
         redirectUrl: `https://pay.test/${i.orderId}`,
         kedaluwarsaPada: i.kedaluwarsaPada,
         providerRef: `inv-${i.orderId}`,
+        metode: i.metode ?? null,
+        instruksi: i.metode
+          ? { jenis: 'redirect', url: `https://pay.test/${i.orderId}`, kedaluwarsaPada: i.kedaluwarsaPada }
+          : null,
       };
     },
     async bacaNotifikasi() { return null; },
     async ambilStatus() { return null; },
     async refund() { return { ok: true, reference: 'ref-1' }; },
+    async batalkan(providerRef) { dibatalkan.push(providerRef); },
   };
 
-  return { gateway, dipanggil };
+  return { gateway, dipanggil, dibatalkan };
 }
 
 function deps(store: GatewayStore, gateway: GatewayProvider): GatewayDeps {
@@ -104,6 +117,55 @@ test('petakanStatusXendit menutup status invoice yang dipakai provider', () => {
   assert.equal(petakanStatusXendit('EXPIRED'), 'kedaluwarsa');
   assert.equal(petakanStatusXendit('FAILED'), 'gagal');
   assert.equal(petakanStatusXendit('status-baru-tak-dikenal'), 'perlu_tinjau');
+});
+
+test('petakanStatusPaymentRequest menutup status Payment Requests v3', () => {
+  assert.equal(petakanStatusPaymentRequest('SUCCEEDED'), 'dibayar');
+  assert.equal(petakanStatusPaymentRequest('REQUIRES_ACTION'), 'pending');
+  assert.equal(petakanStatusPaymentRequest('ACCEPTING_PAYMENTS'), 'pending');
+  assert.equal(petakanStatusPaymentRequest('AUTHORIZED'), 'pending');
+  assert.equal(petakanStatusPaymentRequest('EXPIRED'), 'kedaluwarsa');
+  assert.equal(petakanStatusPaymentRequest('FAILED'), 'gagal');
+  assert.equal(petakanStatusPaymentRequest('CANCELED'), 'gagal');
+  assert.equal(petakanStatusPaymentRequest('CANCELLED'), 'gagal');
+  assert.equal(petakanStatusPaymentRequest('status-baru-tak-dikenal'), 'perlu_tinjau');
+});
+
+test('kanalAktif: kosong = semua, kode admin v3 dipakai, kode lama diterjemahkan', () => {
+  assert.equal(kanalAktif([]).length, 8);
+  assert.deepEqual(kanalAktif(['qris']).map((k) => k.kode), ['QRIS']);
+  assert.deepEqual(kanalAktif(['va_bca']).map((k) => k.kode), ['BCA_VIRTUAL_ACCOUNT']);
+  assert.deepEqual(kanalAktif(['bank_transfer']).map((k) => k.kode), [
+    'BCA_VIRTUAL_ACCOUNT', 'BNI_VIRTUAL_ACCOUNT', 'BRI_VIRTUAL_ACCOUNT', 'MANDIRI_VIRTUAL_ACCOUNT', 'PERMATA_VIRTUAL_ACCOUNT',
+  ]);
+  assert.equal(kanalAktif(['credit_card']).length, 0); // kartu di luar cakupan
+});
+
+test('metodeDiizinkan: channel_code diterima hanya bila kanal aktif', () => {
+  assert.equal(metodeDiizinkan('QRIS', []), true);
+  assert.equal(metodeDiizinkan('QRIS', ['va_bca']), false);
+  assert.equal(metodeDiizinkan('DANA', ['dana', 'qris']), true);
+  assert.equal(metodeDiizinkan('DANA', ['qris']), false);
+  assert.equal(metodeDiizinkan('OVO', []), false); // tidak ada di katalog
+});
+
+test('instruksiDariTransaksi: QR dari token, VA dari token, e-wallet dari redirect_url', () => {
+  const kedaluwarsa = new Date('2026-11-18T03:00:00.000Z');
+  assert.deepEqual(
+    instruksiDariTransaksi({ metode: 'QRIS', token: 'qr-abc', redirectUrl: null, kedaluwarsaPada: kedaluwarsa }),
+    { jenis: 'qr', nilai: 'qr-abc', kedaluwarsaPada: kedaluwarsa },
+  );
+  assert.deepEqual(
+    instruksiDariTransaksi({ metode: 'BCA_VIRTUAL_ACCOUNT', token: '381659999033910', redirectUrl: null, kedaluwarsaPada: kedaluwarsa }),
+    { jenis: 'va', nomor: '381659999033910', bank: 'BCA', kedaluwarsaPada: kedaluwarsa },
+  );
+  assert.deepEqual(
+    instruksiDariTransaksi({ metode: 'DANA', token: null, redirectUrl: 'https://dana.test/pay', kedaluwarsaPada: kedaluwarsa }),
+    { jenis: 'redirect', url: 'https://dana.test/pay', kedaluwarsaPada: kedaluwarsa },
+  );
+  // Tanpa nilai instruksi (mis. respons tidak lengkap) → null, bukan instruksi kosong.
+  assert.equal(instruksiDariTransaksi({ metode: 'QRIS', token: null, redirectUrl: null, kedaluwarsaPada: kedaluwarsa }), null);
+  assert.equal(instruksiDariTransaksi({ metode: 'INV-123', token: null, redirectUrl: 'https://x', kedaluwarsaPada: kedaluwarsa }), null);
 });
 
 test('petakanStatusRefundXendit: sukses/pending = refund, sisanya diabaikan', () => {
@@ -225,6 +287,7 @@ test('buatTransaksi: transaksi pending yang masih berlaku dipakai ulang (klik ga
     redirectUrl: 'https://pay.test/lama',
     status: 'pending',
     kedaluwarsaPada: new Date(NOW.getTime() + 600_000),
+    metode: null,
   };
   const s = buatStore(PESANAN, [aktif]);
   const g = buatProvider();
@@ -238,7 +301,7 @@ test('buatTransaksi: transaksi pending yang masih berlaku dipakai ulang (klik ga
   assert.equal(s.transaksi.length, 1);
 });
 
-test('buatTransaksi: transaksi lama kedaluwarsa membuat order baru -R2, dan batas 5 percobaan dihormati', async () => {
+test('buatTransaksi: transaksi lama kedaluwarsa membuat order baru -R2, dan batas 10 percobaan dihormati', async () => {
   const lama: TransaksiTersimpan = {
     orderId: 'FGO-UJI01',
     providerRef: null,
@@ -246,6 +309,7 @@ test('buatTransaksi: transaksi lama kedaluwarsa membuat order baru -R2, dan bata
     redirectUrl: 'https://pay.test/lama',
     status: 'pending',
     kedaluwarsaPada: new Date(NOW.getTime() - 1000),
+    metode: null,
   };
   const s = buatStore(PESANAN, [lama]);
   const g = buatProvider();
@@ -255,12 +319,95 @@ test('buatTransaksi: transaksi lama kedaluwarsa membuat order baru -R2, dan bata
   if (r.ok) assert.equal(r.transaksi.orderId, 'FGO-UJI01-R2');
   assert.equal(s.transaksi.length, 2);
 
-  const penuh = buatStore(PESANAN, Array.from({ length: 5 }, (_, n) => ({ ...lama, orderId: `FGO-UJI01-R${n + 1}` })));
+  const penuh = buatStore(PESANAN, Array.from({ length: 10 }, (_, n) => ({ ...lama, orderId: `FGO-UJI01-R${n + 1}` })));
   assert.deepEqual(
     await buatTransaksi(deps(penuh.store, g.gateway), { penggunaId: 7, kode: PESANAN.kode }),
     { ok: false, kode: 'BATAS_PERCOBAAN' },
   );
-  assert.equal(penuh.transaksi.length, 5);
+  assert.equal(penuh.transaksi.length, 10);
+});
+
+// ─── Pemilihan metode (Payment Requests v3) ─────────────────────────────────
+
+test('buatTransaksi: metode tidak diizinkan Pengaturan ditolak tanpa memanggil gateway', async () => {
+  const s = buatStore();
+  const g = buatProvider();
+  const d: GatewayDeps = { ...deps(s.store, g.gateway), metodeAktif: async () => ['qris'] };
+
+  assert.deepEqual(
+    await buatTransaksi(d, { penggunaId: 7, kode: PESANAN.kode, metode: 'DANA' }),
+    { ok: false, kode: 'METODE_TIDAK_VALID' },
+  );
+  assert.deepEqual(
+    await buatTransaksi(d, { penggunaId: 7, kode: PESANAN.kode, metode: 'OVO' }),
+    { ok: false, kode: 'METODE_TIDAK_VALID' },
+  );
+  assert.equal(g.dipanggil.length, 0);
+  assert.equal(s.transaksi.length, 0);
+});
+
+test('buatTransaksi: metode dipilih diteruskan ke provider dan tersimpan', async () => {
+  const s = buatStore();
+  const g = buatProvider();
+
+  const r = await buatTransaksi(deps(s.store, g.gateway), { penggunaId: 7, kode: PESANAN.kode, metode: 'QRIS' });
+  assert.ok(r.ok);
+  if (!r.ok) return;
+  assert.equal(g.dipanggil[0].metode, 'QRIS');
+  assert.equal(s.transaksi[0].metode, 'QRIS');
+  assert.equal(r.transaksi.metode, 'QRIS');
+  assert.ok(r.transaksi.instruksi);
+});
+
+test('buatTransaksi: metode sama pada transaksi berlaku dipakai ulang tanpa tagihan baru', async () => {
+  const aktif: TransaksiTersimpan = {
+    orderId: 'FGO-UJI01',
+    providerRef: 'pr-lama',
+    token: 'qr-lama',
+    redirectUrl: null,
+    status: 'pending',
+    kedaluwarsaPada: new Date(NOW.getTime() + 600_000),
+    metode: 'QRIS',
+  };
+  const s = buatStore(PESANAN, [aktif]);
+  const g = buatProvider();
+
+  const r = await buatTransaksi(deps(s.store, g.gateway), { penggunaId: 7, kode: PESANAN.kode, metode: 'QRIS' });
+  assert.ok(r.ok);
+  if (!r.ok) return;
+  assert.equal(r.transaksi.orderId, 'FGO-UJI01');
+  assert.equal(r.transaksi.metode, 'QRIS');
+  assert.deepEqual(r.transaksi.instruksi, {
+    jenis: 'qr', nilai: 'qr-lama', kedaluwarsaPada: new Date(NOW.getTime() + 600_000),
+  });
+  assert.equal(g.dipanggil.length, 0);
+  assert.equal(g.dibatalkan.length, 0);
+  assert.equal(s.ditutup.length, 0);
+});
+
+test('buatTransaksi: ganti metode membatalkan transaksi lama lalu membuat tagihan baru', async () => {
+  const lama: TransaksiTersimpan = {
+    orderId: 'FGO-UJI01',
+    providerRef: 'pr-lama',
+    token: 'qr-lama',
+    redirectUrl: null,
+    status: 'pending',
+    kedaluwarsaPada: new Date(NOW.getTime() + 600_000),
+    metode: 'QRIS',
+  };
+  const s = buatStore(PESANAN, [lama]);
+  const g = buatProvider();
+
+  const r = await buatTransaksi(deps(s.store, g.gateway), { penggunaId: 7, kode: PESANAN.kode, metode: 'DANA' });
+  assert.ok(r.ok);
+  if (!r.ok) return;
+  assert.deepEqual(g.dibatalkan, ['pr-lama']); // best effort di provider
+  assert.deepEqual(s.ditutup, ['FGO-UJI01']); // ditutup di DB sebelum tagihan baru
+  assert.equal(g.dipanggil.length, 1);
+  assert.equal(g.dipanggil[0].metode, 'DANA');
+  assert.equal(r.transaksi.orderId, 'FGO-UJI01-R2');
+  assert.equal(r.transaksi.metode, 'DANA');
+  assert.equal(s.transaksi.length, 2);
 });
 
 test('buatTransaksi: kegagalan provider tidak menyimpan transaksi setengah jadi', async () => {

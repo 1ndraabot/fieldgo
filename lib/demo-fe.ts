@@ -278,5 +278,5 @@ export function getAdminPengguna(): BarisPengguna[] {
 export type PengaturanData = { bank: string; nomorRekening: string; atasNama: string; batasBayarJam: number; batasPembatalanHari: number };
 
 export function getAdminPengaturan(): PengaturanData {
-  return { bank: 'Bank BCA', nomorRekening: '1234 567 890', atasNama: 'FieldGo Sport', batasBayarJam: 24, batasPembatalanHari: 1 };
+  return { bank: 'Bank BCA', nomorRekening: '1234 567 890', atasNama: 'FieldGo Sport', batasBayarJam: 1, batasPembatalanHari: 1 };
 }

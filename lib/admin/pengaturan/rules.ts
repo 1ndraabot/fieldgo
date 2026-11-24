@@ -1,18 +1,13 @@
 /** Aturan murni pengaturan global admin (FR-ADM-11). Dipakai server dan form. */
+import { KANAL_BAYAR } from '../../gateway/kanal.ts';
 
 export type Rekening = { bank: string; nomor: string; atasNama: string };
 
-export type MetodeKode = 'qris' | 'gopay' | 'shopeepay' | 'bank_transfer' | 'echannel' | 'credit_card';
+export type MetodeKode = string;
 
-/** Kode metode pembayaran yang boleh dipilih admin (kosong = semua metode aktif). */
-export const METODE_PEMBAYARAN: { kode: MetodeKode; label: string }[] = [
-  { kode: 'qris', label: 'QRIS' },
-  { kode: 'gopay', label: 'GoPay' },
-  { kode: 'shopeepay', label: 'ShopeePay' },
-  { kode: 'bank_transfer', label: 'Transfer bank (VA)' },
-  { kode: 'echannel', label: 'Mandiri Bill' },
-  { kode: 'credit_card', label: 'Kartu kredit' },
-];
+/** Kode kanal v3 yang boleh dipilih admin (kosong = semua kanal aktif). */
+export const METODE_PEMBAYARAN: { kode: MetodeKode; label: string }[] =
+  KANAL_BAYAR.map((k) => ({ kode: k.kodeAdmin, label: k.label }));
 
 export const BATAS_BAYAR_MIN = 1;
 export const BATAS_BAYAR_MAKS = 72;

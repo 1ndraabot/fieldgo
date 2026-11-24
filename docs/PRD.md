@@ -60,7 +60,7 @@ Payment gateway, aplikasi mobile native, notifikasi WhatsApp/SMS (**[v1.1]** Web
 | BR-04 | Satu pesanan hanya untuk satu lapangan dan satu tanggal. |
 | BR-05 | Jam operasional berada dalam rentang 06.00 sampai 24.00; slot terakhir adalah 23.00 sampai 24.00. Tidak ada pesanan lintas hari. |
 | BR-06 | Harga dikunci saat pesanan dibuat, per jam, dan tidak berubah meski tarif diubah kemudian. |
-| BR-07 | Batas unggah bukti = **24 jam sejak pesanan dibuat atau sebelum jam main mulai, mana yang lebih dulu**. |
+| BR-07 | Batas pembayaran = **1 jam sejak pesanan dibuat (default Pengaturan, rentang 1–72 jam) atau sebelum jam main mulai, mana yang lebih dulu**. |
 | BR-08 | Hitungan batas bayar berhenti begitu bukti diunggah. |
 | BR-09 | Pesanan tanpa bukti sampai batas bayar menjadi Kedaluwarsa dan slot dilepas. |
 | BR-10 | Penyewa boleh membatalkan langsung pesanan yang belum dibayar (tanpa form dan tanpa persetujuan admin). |
@@ -151,7 +151,7 @@ Prioritas seluruhnya **Wajib (Must)** karena semua fitur adalah bagian dari renc
 | FR-ADM-07 | **Verifikasi pesanan, antrean pembatalan**: daftar Pengajuan pembatalan dengan data form. Aksi **Setujui** (jadi Dibatalkan, slot dilepas) atau **Tolak** (kembali Terkonfirmasi); wajib mengisi catatan keputusan; nominal refund diisi manual bila ada. |
 | FR-ADM-08 | **Rekap sewa**: laporan pesanan Terkonfirmasi dan Selesai berdasarkan periode, dengan filter lapangan dan jenis olahraga; menampilkan jumlah pesanan, total jam, dan total pendapatan. Dapat diekspor ke CSV. |
 | FR-ADM-09 | **Nonaktifkan/aktifkan akun penyewa** dengan satu tombol pada data pengguna; data pesanan tetap utuh (BR-17, BR-18). |
-| FR-ADM-10 | **Pengaturan**: rekening tujuan, batas bayar (24 jam), batas pembatalan (H-1). |
+| FR-ADM-10 | **Pengaturan**: rekening tujuan, batas bayar (default 1 jam, rentang 1–72 jam), batas pembatalan (H-1), aktif/nonaktif gateway, dan metode pembayaran yang diizinkan. |
 | FR-ADM-11 | Admin dapat melihat daftar seluruh pesanan dengan pencarian berdasarkan kode atau nama penyewa dan filter status, sebagai dasar verifikasi dan penelusuran. |
 
 > **Catatan efisiensi:** FR-ADM-09 sampai FR-ADM-11 adalah bagian dari fitur yang sudah disepakati (nonaktifkan akun, pengaturan global, serta tampilan pesanan sebagai dasar Verifikasi dan Rekap) dan tidak menambah menu baru di luar panel admin.
@@ -201,9 +201,9 @@ Prioritas seluruhnya **Wajib (Must)** karena semua fitur adalah bagian dari renc
 ```
 
 ### 5.3 Perhitungan batas bayar
-`batas_bayar_pada = minimum(waktu pesanan dibuat + 24 jam, jam mulai main)`
+`batas_bayar_pada = minimum(waktu pesanan dibuat + batas_bayar_jam Pengaturan (default 1 jam), jam mulai main)`
 
-Contoh: pesanan dibuat 20.00 untuk main esok pukul 08.00, maka batas bayar adalah esok pukul 08.00 (bukan 24 jam penuh).
+Contoh (default 1 jam): pesanan dibuat 20.00 untuk main esok pukul 08.00, maka batas bayar adalah 21.00 malam itu. Bila admin menaikkan pengaturan ke 24 jam, batasnya esok pukul 08.00. Batas ini juga dikirim sebagai `expires_at` ke gateway pembayaran sehingga instruksi (QR/VA) dan pesanan mati bersamaan.
 
 ### 5.4 Perhitungan batas pembatalan
 Pengajuan diizinkan jika waktu sekarang ≤ pukul 23.59 pada hari sebelum `tanggal_main` (H-1). Nilai "1 hari" diambil dari Pengaturan.
@@ -279,7 +279,7 @@ Pengaturan (mandiri)
 
 **RiwayatStatus**: id, pesanan_id, status_lama, status_baru, diubah_oleh (kosong = sistem), waktu, catatan
 
-**Pengaturan**: rekening_tujuan (bank, nomor, atas nama), batas_bayar_jam (24), batas_pembatalan_hari (1)
+**Pengaturan**: rekening_tujuan (bank, nomor, atas nama), batas_bayar_jam (1, rentang 1–72), batas_pembatalan_hari (1), gateway_aktif, metode_aktif
 
 **[v1.1] PushSubscription**: id, pengguna_id, endpoint (unik), kunci_p256dh, kunci_auth, user_agent, dibuat_pada, terakhir_berhasil_pada. Satu pengguna dapat memiliki banyak perangkat.
 
@@ -379,7 +379,7 @@ Prinsip: bangun sekecil mungkin yang masih memenuhi seluruh fitur.
 | Keunikan slot di tingkat basis data | Anti double booking tidak bergantung pada tampilan |
 | Transfer manual, tanpa payment gateway | Tanpa integrasi dan biaya transaksi |
 | **[v1.1]** Satu worker (BullMQ + Redis) untuk pengiriman Web Push dan proses otomatis berkala | Satu infrastruktur antrean dipakai bersama, bukan dua mekanisme terpisah |
-| Pengaturan global berupa pasangan nama–nilai | 24 jam dan H-1 dapat diubah tanpa mengubah rancangan |
+| Pengaturan global berupa pasangan nama–nilai | 1 jam (batas bayar) dan H-1 dapat diubah tanpa mengubah rancangan |
 | Peta memakai embed pihak ketiga dari koordinat | Tanpa membangun fitur peta sendiri |
 | **[v1.1]** Object storage dengan satu pola unggah (lewat backend) | Validasi tipe dan ukuran terpusat di server; bukti tetap privat |
 | Komponen kalender dan form dipakai ulang | Kalender publik, kalender pribadi, dan pemilih slot berbagi satu komponen |
@@ -455,7 +455,7 @@ Tahap berikutnya hanya dimulai bila kriteria penerimaan tahap sebelumnya terpenu
 
 ### 14.1 Asumsi
 1. Jam standar 06.00 sampai 24.00 berlaku untuk semua lapangan; penyimpangan diatur lewat Kelola jam operasional.
-2. Aturan batas bayar "24 jam atau sebelum jam main, mana yang lebih dulu" berlaku.
+2. Aturan batas bayar "1 jam (default Pengaturan) atau sebelum jam main, mana yang lebih dulu" berlaku.
 3. Token verifikasi dan reset berlaku 24 jam (dapat diubah).
 4. Satu pengajuan pembatalan per pesanan.
 5. Peta memakai layanan embed pihak ketiga.
@@ -470,7 +470,7 @@ Tahap berikutnya hanya dimulai bila kriteria penerimaan tahap sebelumnya terpenu
 |---|---|---|
 | Bukti ditolak karena salah unggah, bukan penipuan, lalu pesanan hangus | Penyewa kesal | Pratinjau dan petunjuk sebelum kirim; alasan penolakan jelas |
 | Admin tunggal terlambat memverifikasi | Slot tertahan lama, penyewa cemas | Hitungan berhenti setelah bukti; antrean terurut terlama dulu |
-| Slot terkunci 24 jam oleh penyewa tidak serius | Pendapatan hilang | Batas bayar dibatasi jam main; penyewa dapat membatalkan langsung |
+| Slot terkunci lama oleh penyewa tidak serius | Pendapatan hilang | Default batas bayar 1 jam dan dibatasi jam main; penyewa dapat membatalkan langsung |
 | Kebijakan refund belum baku | Keputusan tidak konsisten | Catatan dan nominal manual; dapat dibakukan tanpa mengubah alur |
 | Bukti transfer palsu atau diedit | Kerugian finansial | Admin wajib mencocokkan dengan mutasi rekening sebelum menyetujui |
 | Penjadwal terlambat atau mati | Status tidak diperbarui | Pengecekan langsung `batas_bayar_pada` di kalender dan pemesanan |

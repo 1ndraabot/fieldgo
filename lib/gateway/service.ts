@@ -1,4 +1,5 @@
 import type { StatusPesanan } from '../slots.ts';
+import { instruksiDariTransaksi, metodeDiizinkan } from './kanal.ts';
 import type { GatewayProvider, NotifikasiGateway, StatusBayar, TransaksiGateway } from './types.ts';
 
 export type PesananGateway = {
@@ -18,9 +19,10 @@ export type TransaksiTersimpan = {
   orderId: string;
   providerRef: string | null;
   token: string | null;
-  redirectUrl: string;
+  redirectUrl: string | null;
   status: StatusBayar;
   kedaluwarsaPada: Date | null;
+  metode: string | null;
 };
 
 export type HasilNotifikasi =
@@ -54,9 +56,12 @@ export interface GatewayStore {
     providerRef: string | null;
     jumlah: number;
     token: string | null;
-    redirectUrl: string;
+    redirectUrl: string | null;
     kedaluwarsaPada: Date;
+    metode: string | null;
   }): Promise<TransaksiTersimpan>;
+  /** Tutup transaksi pending yang ditinggalkan saat penyewa berganti metode. */
+  tutupTransaksiPending(orderId: string, now: Date): Promise<void>;
   statusPesanan(kode: string, penggunaId: number): Promise<StatusPesananGateway | null>;
   prosesNotifikasi(d: NotifikasiGateway & { provider: string; now: Date }): Promise<HasilNotifikasi>;
 }
@@ -74,38 +79,68 @@ export type GatewayDeps = {
 
 export type HasilBuat =
   | { ok: true; transaksi: TransaksiGateway }
-  | { ok: false; kode: 'TIDAK_DITEMUKAN' | 'STATUS_BERUBAH' | 'KEDALUWARSA' | 'BATAS_PERCOBAAN' | 'GATEWAY_GAGAL' };
+  | { ok: false; kode: 'TIDAK_DITEMUKAN' | 'STATUS_BERUBAH' | 'KEDALUWARSA' | 'BATAS_PERCOBAAN' | 'METODE_TIDAK_VALID' | 'GATEWAY_GAGAL' };
 
-const MAKS_PERCOBAAN = 5;
+const MAKS_PERCOBAAN = 10;
 
 function orderIdUntuk(kode: string, percobaan: number): string {
   return percobaan === 0 ? kode : `${kode}-R${percobaan + 1}`;
 }
 
+/** Bentuk transaksi untuk UI; instruksi diturunkan dari kolom yang tersimpan (tanpa migrasi). */
+function ringkas(t: TransaksiTersimpan, cadanganKedaluwarsa: Date): TransaksiGateway {
+  const kedaluwarsaPada = t.kedaluwarsaPada ?? cadanganKedaluwarsa;
+  return {
+    orderId: t.orderId,
+    providerRef: t.providerRef,
+    token: t.token,
+    redirectUrl: t.redirectUrl,
+    kedaluwarsaPada,
+    metode: t.metode,
+    instruksi: instruksiDariTransaksi({
+      metode: t.metode,
+      token: t.token,
+      redirectUrl: t.redirectUrl,
+      kedaluwarsaPada,
+    }),
+  };
+}
+
 /**
  * Membuat transaksi gateway dari data pesanan di server. Nominal dan item tidak pernah
- * berasal dari klien. Bila masih ada transaksi pending yang berlaku, transaksi itu
- * dipakai ulang agar klik ganda tidak membuat tagihan ganda.
+ * berasal dari klien. Transaksi pending dengan metode yang sama dipakai ulang agar klik
+ * ganda tidak menagih dua kali; bila penyewa berganti metode, transaksi lama dibatalkan
+ * best-effort lalu ditutup sebelum transaksi baru dibuat.
  */
-export async function buatTransaksi(d: GatewayDeps, i: { penggunaId: number; kode: string }): Promise<HasilBuat> {
+export async function buatTransaksi(
+  d: GatewayDeps,
+  i: { penggunaId: number; kode: string; metode?: string | null },
+): Promise<HasilBuat> {
   const now = d.sekarang();
   const p = await d.store.cariPesananMilik(i.kode, i.penggunaId);
   if (!p) return { ok: false, kode: 'TIDAK_DITEMUKAN' };
   if (p.status !== 'menunggu_pembayaran') return { ok: false, kode: 'STATUS_BERUBAH' };
   if (p.batasBayarPada.getTime() <= now.getTime()) return { ok: false, kode: 'KEDALUWARSA' };
 
+  const diminta = i.metode?.trim() || null;
+  const metodeAktif = d.metodeAktif ? await d.metodeAktif() : [];
+  if (diminta && !metodeDiizinkan(diminta, metodeAktif)) return { ok: false, kode: 'METODE_TIDAK_VALID' };
+
   const aktif = await d.store.transaksiAktif(p.id, now);
+  if (aktif && (!diminta || aktif.metode === diminta)) {
+    return { ok: true, transaksi: ringkas(aktif, p.batasBayarPada) };
+  }
+
   if (aktif) {
-    return {
-      ok: true,
-      transaksi: {
-        orderId: aktif.orderId,
-        providerRef: aktif.providerRef,
-        token: aktif.token,
-        redirectUrl: aktif.redirectUrl,
-        kedaluwarsaPada: aktif.kedaluwarsaPada ?? p.batasBayarPada,
-      },
-    };
+    // Ganti metode: instruksi lama tidak boleh tetap bisa dibayar.
+    if (aktif.providerRef && d.gateway.batalkan) {
+      try {
+        await d.gateway.batalkan(aktif.providerRef);
+      } catch (e) {
+        console.error('[gateway] gagal membatalkan transaksi lama', e);
+      }
+    }
+    await d.store.tutupTransaksiPending(aktif.orderId, now);
   }
 
   const percobaan = await d.store.hitungPercobaan(p.id);
@@ -128,7 +163,8 @@ export async function buatTransaksi(d: GatewayDeps, i: { penggunaId: number; kod
       })),
       kedaluwarsaPada: p.batasBayarPada,
       selesaiUrl: `${d.baseUrl}/pesanan/${encodeURIComponent(p.kode)}/bayar`,
-      metodeAktif: d.metodeAktif ? await d.metodeAktif() : [],
+      metode: diminta ?? undefined,
+      metodeAktif,
     });
   } catch (e) {
     console.error('[gateway] gagal membuat transaksi', e);
@@ -144,19 +180,11 @@ export async function buatTransaksi(d: GatewayDeps, i: { penggunaId: number; kod
     token: transaksi.token,
     redirectUrl: transaksi.redirectUrl,
     kedaluwarsaPada: transaksi.kedaluwarsaPada,
+    metode: transaksi.metode,
   });
 
   // Pakai hasil simpan: pada klik bersamaan, panggilan kedua mendapat transaksi yang sama.
-  return {
-    ok: true,
-    transaksi: {
-      orderId: tersimpan.orderId,
-      providerRef: tersimpan.providerRef,
-      token: tersimpan.token,
-      redirectUrl: tersimpan.redirectUrl,
-      kedaluwarsaPada: tersimpan.kedaluwarsaPada ?? transaksi.kedaluwarsaPada,
-    },
-  };
+  return { ok: true, transaksi: ringkas(tersimpan, transaksi.kedaluwarsaPada) };
 }
 
 export async function prosesNotifikasi(d: GatewayDeps, notif: NotifikasiGateway): Promise<HasilNotifikasi> {
@@ -189,9 +217,9 @@ export async function sinkronkanMilik(d: GatewayDeps, kode: string, penggunaId: 
   if (!awal) return { ok: false, kode: 'TIDAK_DITEMUKAN' };
 
   const t = awal.transaksi;
-  const ringkas = { status: awal.status, batasBayarPada: awal.batasBayarPada, transaksi: t };
+  const ringkasStatus = { status: awal.status, batasBayarPada: awal.batasBayarPada, transaksi: t };
   if (awal.status !== 'menunggu_pembayaran' || !t || t.status !== 'pending' || !t.providerRef) {
-    return { ok: true, ...ringkas, hasil: null };
+    return { ok: true, ...ringkasStatus, hasil: null };
   }
 
   // Batasi panggilan keluar per pesanan: poller 15 detik tetap aman walau tab dibuka ganda.

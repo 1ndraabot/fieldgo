@@ -1,3 +1,4 @@
+import { kanalDari } from './kanal.ts';
 import type { GatewayProvider, NotifikasiGateway, StatusBayar, TransaksiGateway } from './types.ts';
 
 const STATUS_SAH: StatusBayar[] = ['pending', 'dibayar', 'gagal', 'kedaluwarsa', 'refund', 'sebagian_refund', 'perlu_tinjau'];
@@ -17,13 +18,27 @@ export const fakeGateway: GatewayProvider = {
   nama: 'fake',
 
   async buatTransaksi(i): Promise<TransaksiGateway> {
-    const order = encodeURIComponent(i.orderId);
+    const kanal = kanalDari(i.metode) ?? kanalDari('QRIS')!;
+    const simulasi = `/pesanan/${encodeURIComponent(i.kode)}/bayar/simulasi?order=${encodeURIComponent(i.orderId)}`;
+    const token = kanal.grup === 'va'
+      ? `8808${String(Date.now()).slice(-10)}`
+      : kanal.grup === 'qris'
+        ? `FAKE-QR-${i.orderId}`
+        : null;
+
     return {
       orderId: i.orderId,
-      token: null,
-      redirectUrl: `/pesanan/${encodeURIComponent(i.kode)}/bayar/simulasi?order=${order}`,
+      token,
+      // Halaman simulasi tetap dapat dibuka dari QR/VA saat provider fake aktif.
+      redirectUrl: simulasi,
       kedaluwarsaPada: i.kedaluwarsaPada,
       providerRef: null,
+      metode: kanal.kode,
+      instruksi: kanal.grup === 'qris' && token
+        ? { jenis: 'qr', nilai: token, kedaluwarsaPada: i.kedaluwarsaPada }
+        : kanal.grup === 'va' && token
+          ? { jenis: 'va', nomor: token, bank: kanal.bank ?? kanal.label, kedaluwarsaPada: i.kedaluwarsaPada }
+          : { jenis: 'redirect', url: simulasi, kedaluwarsaPada: i.kedaluwarsaPada },
     };
   },
 
