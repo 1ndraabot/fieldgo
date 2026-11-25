@@ -1,7 +1,8 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { LapanganView } from '@/components/lapangan/LapanganView';
-import { tambahHari, wibSekarang } from '@/lib/format';
+import { penggunaSaatIni } from '@/lib/auth/session';
+import { batasiTanggal, MAKS_HARI_MUKA, wibSekarang } from '@/lib/format';
 import { getHalamanLapangan } from '@/lib/lapangan-data';
 import { parseBerandaParams } from '@/lib/params';
 
@@ -20,16 +21,14 @@ export default async function DetailLapangan({ params, searchParams }: {
 
   const now = new Date();
   const hariIni = wibSekarang(now).tanggal;
-  const { tanggal } = parseBerandaParams({ tanggal: (await searchParams).tanggal }, hariIni);
-  const halaman = await getHalamanLapangan(Number(id), tanggal, now);
+  const { tanggal: diminta } = parseBerandaParams({ tanggal: (await searchParams).tanggal }, hariIni);
+  // Pemesanan dibatasi [hari ini, hari ini + 30] — dijaga di server, kalender klien, dan API slot.
+  const tanggal = batasiTanggal(diminta, hariIni, MAKS_HARI_MUKA);
+  const [halaman, pengguna] = await Promise.all([getHalamanLapangan(Number(id), tanggal, now), penggunaSaatIni()]);
   if (!halaman) notFound();
 
-  // Navigasi tanggal: mundur hanya sampai hari ini, maju maksimal 13 hari.
-  const sebelum = tambahHari(tanggal, -1);
-  const sesud = tambahHari(tanggal, 1);
   return (
     <LapanganView data={halaman.data} slot={halaman.slot} tanggal={tanggal} hariIni={hariIni}
-      hrefSebelum={sebelum >= hariIni ? `/lapangan/${halaman.data.id}?tanggal=${sebelum}` : null}
-      hrefSesud={sesud <= tambahHari(hariIni, 13) ? `/lapangan/${halaman.data.id}?tanggal=${sesud}` : null} />
+      pengguna={pengguna ? { nama: pengguna.nama } : null} />
   );
 }

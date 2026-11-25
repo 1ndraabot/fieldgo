@@ -1,8 +1,13 @@
+'use client';
+
+import { useState } from 'react';
 import type { BerandaData } from '@/lib/beranda';
-import { labelPendek } from '@/lib/format';
+import { labelPendek, MAKS_HARI_MUKA, tambahHari } from '@/lib/format';
 import { SITE } from '@/lib/site';
 import { CourtSurface } from './Court';
 import { Icon, type IconName } from './icons';
+import { DropdownTema } from './ui/DropdownTema';
+import { PemilihKalender } from './ui/KalenderTema';
 import { SlotPicker } from './SlotPicker';
 
 const field = 'flex flex-[1_1_200px] items-center gap-3 px-3.5 py-1';
@@ -18,6 +23,9 @@ function Field({ icon, label, children }: { icon: IconName; label: string; child
 }
 
 export function Hero({ data }: { data: BerandaData }) {
+  const [olahraga, setOlahraga] = useState(data.olahraga ?? '');
+  const [tanggal, setTanggal] = useState(data.tanggal);
+  const maksTanggal = tambahHari(data.hariIni, MAKS_HARI_MUKA);
   const malam = data.unggulan?.slot.filter((s) => s.jam >= 18) ?? [];
   return (
     <section className="relative px-[clamp(16px,4.5vw,64px)] pt-12 text-center">
@@ -35,16 +43,18 @@ export function Hero({ data }: { data: BerandaData }) {
       </p>
 
       <form role="search" aria-label="Cari slot lapangan" action="/#lapangan" method="get"
-        className="relative z-[2] mx-auto mt-9 flex max-w-[900px] flex-wrap items-center gap-1.5 rounded-[44px] border-[1.5px] border-line bg-white py-2.5 pl-3 pr-2.5 text-left shadow-[0_20px_44px_rgba(8,44,28,.1)]">
+        className="relative z-[6] mx-auto mt-9 flex max-w-[900px] flex-wrap items-center gap-1.5 rounded-[44px] border-[1.5px] border-line bg-white py-2.5 pl-3 pr-2.5 text-left shadow-[0_20px_44px_rgba(8,44,28,.1)]">
+        {/* Nilai sebenarnya untuk form GET; tampilan memakai komponen bertema di bawah. */}
+        <input type="hidden" name="olahraga" value={olahraga} />
+        <input type="hidden" name="tanggal" value={tanggal} />
         <Field icon="ball" label="Olahraga">
-          <select name="olahraga" defaultValue={data.olahraga ?? ''} className={ctl}>
-            <option value="">Semua</option>
-            {data.olahragaList.map((o) => <option key={o} value={o}>{o}</option>)}
-          </select>
+          <DropdownTema nilai={olahraga} ubah={setOlahraga} label="Jenis olahraga" className={ctl}
+            opsi={[{ nilai: '', label: 'Semua' }, ...data.olahragaList.map((o) => ({ nilai: o, label: o }))]} />
         </Field>
         <div aria-hidden="true" className="h-9 w-px bg-line max-[980px]:hidden" />
         <Field icon="calendar" label="Tanggal">
-          <input type="date" name="tanggal" min={data.hariIni} defaultValue={data.tanggal} className={ctl} />
+          <PemilihKalender nilai={tanggal} ubah={setTanggal} min={data.hariIni} maks={maksTanggal}
+            className={`cursor-pointer text-left ${ctl}`} isi={labelPendek(tanggal)} />
         </Field>
         <button type="submit" className="btn flex h-14 cursor-pointer items-center gap-2.5 rounded-full border-0 bg-brand py-0 pl-7 pr-2.5 text-base font-bold text-white">
           Cari slot

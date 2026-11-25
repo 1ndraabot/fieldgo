@@ -30,6 +30,22 @@ export function tambahHari(tanggal: string, n: number): string {
   return d.toISOString().slice(0, 10);
 }
 
+/** Horizon pemesanan: maksimal 30 hari ke depan (sama di halaman, kalender klien, dan API slot). */
+export const MAKS_HARI_MUKA = 30;
+
+/** Menjepit tanggal ISO ke rentang [hariIni, hariIni + maks] (perbandingan string aman untuk YYYY-MM-DD). */
+export function batasiTanggal(tanggal: string, hariIni: string, maks = MAKS_HARI_MUKA): string {
+  const batas = tambahHari(hariIni, maks);
+  if (tanggal < hariIni) return hariIni;
+  return tanggal > batas ? batas : tanggal;
+}
+
+/** Label bulan untuk kalender, mis. '2026-11' → "November 2026". */
+export function labelBulan(bulan: string): string {
+  const [tahun, bulanKe] = bulan.split('-').map(Number);
+  return `${BULAN[bulanKe - 1]} ${tahun}`;
+}
+
 export function labelPendek(tanggal: string): string {
   const d = utcDate(tanggal);
   return `${HARI[d.getUTCDay()].slice(0, 3)}, ${d.getUTCDate()} ${BULAN[d.getUTCMonth()].slice(0, 3)}`;

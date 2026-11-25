@@ -12,6 +12,7 @@ const PATHS = {
   cancel: <><circle cx="12" cy="12" r="10" /><path d="m15 9-6 6M9 9l6 6" /></>,
   spark: <path d="M12 3v18M4.2 7.5l15.6 9M4.2 16.5l15.6-9" />,
   kanan: <path d="M5 12h14M13 6l6 6-6 6" />,
+  bawah: <path d="m6 9 6 6 6-6" />,
   upload: <path d="M12 16V4M6 10l6-6 6 6M4 20h16" />,
   info: <><circle cx="12" cy="12" r="10" /><path d="M12 16v-4M12 8v.01" /></>,
   alert: <><circle cx="12" cy="12" r="10" /><path d="M12 8v5M12 16.5v.01" /></>,

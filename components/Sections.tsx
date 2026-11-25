@@ -109,7 +109,7 @@ export function LapanganSection({ data }: { data: BerandaData }) {
                 <div className="-mt-2 flex items-baseline justify-between gap-3">
                   <span>
                     <span className="font-display text-[19px] font-bold text-brand">{k.hargaMulai === null ? '–' : formatRupiah(k.hargaMulai)}</span>{' '}
-                    <span className="text-sm font-medium text-muted">/ jam{k.hargaMulai === null ? '' : ' (mulai dari)'}</span>
+                    <span className="text-sm font-medium text-muted">/ jam</span>
                   </span>
                   {k.deskripsi && <span className="truncate text-sm font-medium text-muted">{k.deskripsi}</span>}
                 </div>

@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   formatRupiah, formatJam, formatRentang, wibSekarang, hariKe, tambahHari, labelPendek, labelPanjang,
+  batasiTanggal, labelBulan,
 } from '../lib/format.ts';
 
 test('formatRupiah memakai titik ribuan', () => {
@@ -40,4 +41,18 @@ test('tambahHari melewati batas bulan', () => {
 test('label tanggal bahasa Indonesia', () => {
   assert.equal(labelPendek('2026-11-07'), 'Sab, 7 Nov');
   assert.equal(labelPanjang('2026-11-07'), 'Sabtu, 7 November');
+});
+
+test('batasiTanggal menjepit ke rentang [hariIni, hariIni + maks]', () => {
+  assert.equal(batasiTanggal('2026-11-25', '2026-11-26', 30), '2026-11-26'); // lampau → hari ini
+  assert.equal(batasiTanggal('2026-11-26', '2026-11-26', 30), '2026-11-26');
+  assert.equal(batasiTanggal('2026-12-26', '2026-11-26', 30), '2026-12-26'); // tepat di batas
+  assert.equal(batasiTanggal('2026-12-27', '2026-11-26', 30), '2026-12-26'); // lewat batas → dijepit
+  assert.equal(batasiTanggal('2027-01-01', '2026-11-26', 30), '2026-12-26');
+  assert.equal(batasiTanggal('2026-12-27', '2026-11-26'), '2026-12-26'); // default MAKS_HARI_MUKA = 30
+});
+
+test('labelBulan nama bulan Indonesia', () => {
+  assert.equal(labelBulan('2026-11'), 'November 2026');
+  assert.equal(labelBulan('2027-01'), 'Januari 2027');
 });

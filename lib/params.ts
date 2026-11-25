@@ -1,7 +1,10 @@
 import { z } from 'zod';
 
 const Tanggal = z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
-  .refine((s) => new Date(s + 'T00:00:00Z').toISOString().slice(0, 10) === s); // tolak 2026-02-31
+  .refine((s) => {
+    const d = new Date(s + 'T00:00:00Z');
+    return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === s; // tolak 2026-02-31
+  });
 const Olahraga = z.string().trim().min(1).max(50);
 
 type Raw = string | string[] | undefined;
