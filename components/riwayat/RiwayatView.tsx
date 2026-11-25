@@ -4,7 +4,7 @@ import { BannerVerifikasi } from '@/components/auth/BannerVerifikasi';
 import { Footer } from '@/components/Footer';
 import { Header } from '@/components/Header';
 import { Icon } from '@/components/icons';
-import type { BarisRiwayat } from '@/lib/demo-fe';
+import type { BarisRiwayat } from '@/lib/riwayat/types';
 import { formatRupiah, labelPanjang } from '@/lib/format';
 import type { StatusPesanan } from '@/lib/slots';
 

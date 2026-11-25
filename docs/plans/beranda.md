@@ -1,6 +1,6 @@
 # Plan: Halaman Beranda (`/`)
 
-Spec: `docs/PRD.md` (v1.2). Desain: `Gelanggang_Hijau___Redesign.html` (board "Beranda").
+Spec: `docs/PRD.md` (v1.2). Desain: `FieldGo_Hijau___Redesign.html` (board "Beranda").
 Stack: Next.js (App Router) + TypeScript + Tailwind + Prisma + PostgreSQL (Supabase sebagai host Postgres saja).
 
 ## Global constraints

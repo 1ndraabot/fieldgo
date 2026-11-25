@@ -1,7 +1,7 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { DEMO, DEMO_PENGGUNA } from '../demo.ts';
-import { NAMA_COOKIE } from './cookie.ts';
+import { bacaCookie, NAMA_COOKIE } from './cookie.ts';
 import { auth } from './deps.ts';
 import { ambilPengguna } from './service.ts';
 
@@ -12,9 +12,28 @@ export async function penggunaSaatIni() {
   return ambilPengguna(auth, token);
 }
 
+/** Versi route handler: membaca cookie dari header Request, bukan `next/headers`. */
+export async function penggunaDari(req: Request) {
+  if (DEMO) return DEMO_PENGGUNA;
+  return ambilPengguna(auth, bacaCookie(req.headers.get('cookie'), NAMA_COOKIE));
+}
+
+/** Pengguna admin dari sesi request, atau null (dipakai guard API). */
+export async function adminDari(req: Request) {
+  const p = await penggunaDari(req);
+  return p?.peran === 'admin' ? p : null;
+}
+
 /** Halaman khusus penyewa: tamu diarahkan ke /masuk lalu dikembalikan ke `kembaliKe` (FR-PUB-05). */
 export async function wajibPenyewa(kembaliKe: string) {
   const p = await penggunaSaatIni();
   if (!p || p.peran !== 'penyewa') redirect(`/masuk?next=${encodeURIComponent(kembaliKe)}`);
+  return p;
+}
+
+/** Halaman panel admin (FR-ADM-01): tamu/penyewa diarahkan ke /admin/masuk lalu dikembalikan ke `kembaliKe`. */
+export async function wajibAdmin(kembaliKe: string) {
+  const p = await penggunaSaatIni();
+  if (!p || p.peran !== 'admin') redirect(`/admin/masuk?next=${encodeURIComponent(kembaliKe)}`);
   return p;
 }

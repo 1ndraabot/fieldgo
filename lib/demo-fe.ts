@@ -3,7 +3,10 @@
 // loader basis data sungguhan menyusul per tahap PRD Bagian 12). Konsisten dengan lib/demo.ts.
 import type { Ilustrasi } from './beranda.ts';
 import { tambahHari, wibSekarang } from './format.ts';
+import type { BarisRiwayat, DetailPesanan, EntriRiwayat } from './riwayat/types.ts';
 import type { StatusPesanan } from './slots.ts';
+
+export type { BarisRiwayat, DetailPesanan, EntriRiwayat } from './riwayat/types.ts';
 
 const ilustrasiUntuk = (olahraga: string): Ilustrasi => {
   const n = olahraga.toLowerCase();
@@ -130,39 +133,25 @@ export function getLapanganDetail(id: number, now = new Date()): LapanganDetail 
 
 // ─── Riwayat penyewa (dummy sesi: Rani Putri) ───────────────────────────────
 
-export type BarisRiwayat = {
-  kode: string; lapanganId: number; lapanganNama: string;
-  tanggal: string; jamMulai: number; jamSelesai: number; jumlahJam: number;
-  totalHarga: number; status: StatusPesanan; dibuatPada: Date;
-  batasBayarPada: Date | null; alasanPenolakan: string | null;
-};
-
 export function getRiwayat(now = new Date()): BarisRiwayat[] {
   const hariIni = wibSekarang(now).tanggal;
   const t = (n: number) => tambahHari(hariIni, n);
   const lalu = (jam: number) => new Date(now.getTime() - jam * 3600_000);
   const nanti = (jam: number) => new Date(now.getTime() + jam * 3600_000);
   return [
-    { kode: 'GLG-1042', lapanganId: 1, lapanganNama: 'Futsal Arena A', tanggal: t(2), jamMulai: 20, jamSelesai: 22, jumlahJam: 2, totalHarga: 190000, status: 'menunggu_pembayaran', dibuatPada: lalu(3), batasBayarPada: nanti(21), alasanPenolakan: null },
-    { kode: 'GLG-1039', lapanganId: 2, lapanganNama: 'Badminton Court 1', tanggal: t(1), jamMulai: 8, jamSelesai: 9, jumlahJam: 1, totalHarga: 60000, status: 'menunggu_verifikasi', dibuatPada: lalu(20), batasBayarPada: nanti(4), alasanPenolakan: null },
-    { kode: 'GLG-1035', lapanganId: 1, lapanganNama: 'Futsal Arena A', tanggal: t(5), jamMulai: 19, jamSelesai: 21, jumlahJam: 2, totalHarga: 190000, status: 'terkonfirmasi', dibuatPada: lalu(72), batasBayarPada: null, alasanPenolakan: null },
-    { kode: 'GLG-1033', lapanganId: 4, lapanganNama: 'Tenis Lapangan 1', tanggal: t(3), jamMulai: 17, jamSelesai: 18, jumlahJam: 1, totalHarga: 85000, status: 'pengajuan_pembatalan', dibuatPada: lalu(96), batasBayarPada: null, alasanPenolakan: null },
-    { kode: 'GLG-0120', lapanganId: 5, lapanganNama: 'Mini Soccer', tanggal: t(-4), jamMulai: 16, jamSelesai: 18, jumlahJam: 2, totalHarga: 500000, status: 'selesai', dibuatPada: lalu(240), batasBayarPada: null, alasanPenolakan: null },
-    { kode: 'GLG-0101', lapanganId: 3, lapanganNama: 'Basket Outdoor', tanggal: t(-9), jamMulai: 10, jamSelesai: 11, jumlahJam: 1, totalHarga: 75000, status: 'selesai', dibuatPada: lalu(400), batasBayarPada: null, alasanPenolakan: null },
-    { kode: 'GLG-0098', lapanganId: 6, lapanganNama: 'Badminton Court 2', tanggal: t(-6), jamMulai: 9, jamSelesai: 10, jumlahJam: 1, totalHarga: 60000, status: 'dibatalkan', dibuatPada: lalu(300), batasBayarPada: null, alasanPenolakan: null },
-    { kode: 'GLG-0090', lapanganId: 1, lapanganNama: 'Futsal Arena A', tanggal: t(-12), jamMulai: 21, jamSelesai: 22, jumlahJam: 1, totalHarga: 95000, status: 'ditolak', dibuatPada: lalu(480), batasBayarPada: null, alasanPenolakan: 'Bukti transfer tidak terbaca dan nominal tidak sesuai total pesanan.' },
-    { kode: 'GLG-0085', lapanganId: 2, lapanganNama: 'Badminton Court 1', tanggal: t(-15), jamMulai: 13, jamSelesai: 14, jumlahJam: 1, totalHarga: 60000, status: 'kedaluwarsa', dibuatPada: lalu(600), batasBayarPada: lalu(576), alasanPenolakan: null },
+    { kode: 'FGO-1042', lapanganId: 1, lapanganNama: 'Futsal Arena A', tanggal: t(2), jamMulai: 20, jamSelesai: 22, jumlahJam: 2, totalHarga: 190000, status: 'menunggu_pembayaran', dibuatPada: lalu(3), batasBayarPada: nanti(21), alasanPenolakan: null },
+    { kode: 'FGO-1039', lapanganId: 2, lapanganNama: 'Badminton Court 1', tanggal: t(1), jamMulai: 8, jamSelesai: 9, jumlahJam: 1, totalHarga: 60000, status: 'menunggu_verifikasi', dibuatPada: lalu(20), batasBayarPada: nanti(4), alasanPenolakan: null },
+    { kode: 'FGO-1035', lapanganId: 1, lapanganNama: 'Futsal Arena A', tanggal: t(5), jamMulai: 19, jamSelesai: 21, jumlahJam: 2, totalHarga: 190000, status: 'terkonfirmasi', dibuatPada: lalu(72), batasBayarPada: null, alasanPenolakan: null },
+    { kode: 'FGO-1033', lapanganId: 4, lapanganNama: 'Tenis Lapangan 1', tanggal: t(3), jamMulai: 17, jamSelesai: 18, jumlahJam: 1, totalHarga: 85000, status: 'pengajuan_pembatalan', dibuatPada: lalu(96), batasBayarPada: null, alasanPenolakan: null },
+    { kode: 'FGO-0120', lapanganId: 5, lapanganNama: 'Mini Soccer', tanggal: t(-4), jamMulai: 16, jamSelesai: 18, jumlahJam: 2, totalHarga: 500000, status: 'selesai', dibuatPada: lalu(240), batasBayarPada: null, alasanPenolakan: null },
+    { kode: 'FGO-0101', lapanganId: 3, lapanganNama: 'Basket Outdoor', tanggal: t(-9), jamMulai: 10, jamSelesai: 11, jumlahJam: 1, totalHarga: 75000, status: 'selesai', dibuatPada: lalu(400), batasBayarPada: null, alasanPenolakan: null },
+    { kode: 'FGO-0098', lapanganId: 6, lapanganNama: 'Badminton Court 2', tanggal: t(-6), jamMulai: 9, jamSelesai: 10, jumlahJam: 1, totalHarga: 60000, status: 'dibatalkan', dibuatPada: lalu(300), batasBayarPada: null, alasanPenolakan: null },
+    { kode: 'FGO-0090', lapanganId: 1, lapanganNama: 'Futsal Arena A', tanggal: t(-12), jamMulai: 21, jamSelesai: 22, jumlahJam: 1, totalHarga: 95000, status: 'ditolak', dibuatPada: lalu(480), batasBayarPada: null, alasanPenolakan: 'Bukti transfer tidak terbaca dan nominal tidak sesuai total pesanan.' },
+    { kode: 'FGO-0085', lapanganId: 2, lapanganNama: 'Badminton Court 1', tanggal: t(-15), jamMulai: 13, jamSelesai: 14, jumlahJam: 1, totalHarga: 60000, status: 'kedaluwarsa', dibuatPada: lalu(600), batasBayarPada: lalu(576), alasanPenolakan: null },
   ];
 }
 
 // ─── Detail pesanan + linimasa ──────────────────────────────────────────────
-
-export type EntriRiwayat = { waktu: Date; statusBaru: StatusPesanan; oleh: string; catatan: string | null };
-export type DetailPesanan = BarisRiwayat & {
-  riwayat: EntriRiwayat[];
-  bukti: { namaBerkas: string; diunggahPada: Date } | null;
-  pengajuanBatal: { alasan: string; keadaan: 'menunggu' | 'disetujui' | 'ditolak'; catatanAdmin: string | null } | null;
-};
 
 /** Linimasa status sesuai siklus PRD Bagian 5. */
 function linimasa(b: BarisRiwayat, now: Date): EntriRiwayat[] {
@@ -229,7 +218,7 @@ export function getAdminBlacklist(now = new Date()): { baris: BarisBlokir[]; ben
       { id: 1, lapanganNama: 'Futsal Arena A', tanggalMulai: tambahHari(hariIni, 10), tanggalSelesai: tambahHari(hariIni, 10), jamMulai: null, jamSelesai: null, alasan: 'Perbaikan lampu sorot.' },
       { id: 2, lapanganNama: 'Mini Soccer', tanggalMulai: tambahHari(hariIni, 14), tanggalSelesai: tambahHari(hariIni, 15), jamMulai: 6, jamSelesai: 12, alasan: 'Turnamen internal penyelenggara.' },
     ],
-    bentrokDemo: ['GLG-1035 · Futsal Arena A · 19.00–21.00 · Terkonfirmasi', 'GLG-1042 · Futsal Arena A · 20.00–22.00 · Menunggu pembayaran'],
+    bentrokDemo: ['FGO-1035 · Futsal Arena A · 19.00–21.00 · Terkonfirmasi', 'FGO-1042 · Futsal Arena A · 20.00–22.00 · Menunggu pembayaran'],
   };
 }
 
@@ -240,13 +229,13 @@ export function getAdminVerifikasi(now = new Date()): { bukti: AntrianBukti[]; p
   const hariIni = wibSekarang(now).tanggal;
   return {
     bukti: [
-      { kode: 'GLG-1042', penyewa: 'Rani Putri', lapanganNama: 'Futsal Arena A', tanggal: tambahHari(hariIni, 2), jamMulai: 20, jamSelesai: 22, total: 190000, jenisBukti: 'JPG', diunggahPada: new Date(now.getTime() - 1 * 3600_000) },
-      { kode: 'GLG-1051', penyewa: 'Bima Ardiansyah', lapanganNama: 'Badminton Court 1', tanggal: tambahHari(hariIni, 3), jamMulai: 9, jamSelesai: 11, total: 120000, jenisBukti: 'PDF', diunggahPada: new Date(now.getTime() - 6 * 3600_000) },
-      { kode: 'GLG-1055', penyewa: 'Salsabila N.', lapanganNama: 'Mini Soccer', tanggal: tambahHari(hariIni, 4), jamMulai: 19, jamSelesai: 21, total: 500000, jenisBukti: 'PNG', diunggahPada: new Date(now.getTime() - 20 * 3600_000) },
+      { kode: 'FGO-1042', penyewa: 'Rani Putri', lapanganNama: 'Futsal Arena A', tanggal: tambahHari(hariIni, 2), jamMulai: 20, jamSelesai: 22, total: 190000, jenisBukti: 'JPG', diunggahPada: new Date(now.getTime() - 1 * 3600_000) },
+      { kode: 'FGO-1051', penyewa: 'Bima Ardiansyah', lapanganNama: 'Badminton Court 1', tanggal: tambahHari(hariIni, 3), jamMulai: 9, jamSelesai: 11, total: 120000, jenisBukti: 'PDF', diunggahPada: new Date(now.getTime() - 6 * 3600_000) },
+      { kode: 'FGO-1055', penyewa: 'Salsabila N.', lapanganNama: 'Mini Soccer', tanggal: tambahHari(hariIni, 4), jamMulai: 19, jamSelesai: 21, total: 500000, jenisBukti: 'PNG', diunggahPada: new Date(now.getTime() - 20 * 3600_000) },
     ],
     pembatalan: [
-      { kode: 'GLG-1033', penyewa: 'Rani Putri', kontak: '081200000000', alasan: 'Turnamen panitia dibatalkan karena cuaca.', namaBank: 'BCA', nomorRekening: '1234 567 890', atasNama: 'Rani Putri', diajukanPada: new Date(now.getTime() - 2 * 3600_000) },
-      { kode: 'GLG-1028', penyewa: 'Bima Ardiansyah', kontak: '081298765432', alasan: 'Jadwal kantor berubah.', namaBank: 'Mandiri', nomorRekening: '9876 543 210', atasNama: 'Bima Ardiansyah', diajukanPada: new Date(now.getTime() - 9 * 3600_000) },
+      { kode: 'FGO-1033', penyewa: 'Rani Putri', kontak: '081200000000', alasan: 'Turnamen panitia dibatalkan karena cuaca.', namaBank: 'BCA', nomorRekening: '1234 567 890', atasNama: 'Rani Putri', diajukanPada: new Date(now.getTime() - 2 * 3600_000) },
+      { kode: 'FGO-1028', penyewa: 'Bima Ardiansyah', kontak: '081298765432', alasan: 'Jadwal kantor berubah.', namaBank: 'Mandiri', nomorRekening: '9876 543 210', atasNama: 'Bima Ardiansyah', diajukanPada: new Date(now.getTime() - 9 * 3600_000) },
     ],
   };
 }
@@ -254,7 +243,7 @@ export function getAdminVerifikasi(now = new Date()): { bukti: AntrianBukti[]; p
 export type BarisAdminPesanan = BarisRiwayat & { penyewa: string };
 
 export function getAdminPesanan(now = new Date()): BarisAdminPesanan[] {
-  const penyewa: Record<string, string> = { 'GLG-1042': 'Rani Putri', 'GLG-1039': 'Bima Ardiansyah', 'GLG-1035': 'Rani Putri', 'GLG-1033': 'Rani Putri', 'GLG-0120': 'Salsabila N.', 'GLG-0101': 'Bima Ardiansyah', 'GLG-0098': 'Salsabila N.', 'GLG-0090': 'Bima Ardiansyah', 'GLG-0085': 'Rani Putri' };
+  const penyewa: Record<string, string> = { 'FGO-1042': 'Rani Putri', 'FGO-1039': 'Bima Ardiansyah', 'FGO-1035': 'Rani Putri', 'FGO-1033': 'Rani Putri', 'FGO-0120': 'Salsabila N.', 'FGO-0101': 'Bima Ardiansyah', 'FGO-0098': 'Salsabila N.', 'FGO-0090': 'Bima Ardiansyah', 'FGO-0085': 'Rani Putri' };
   return getRiwayat(now).map((b) => ({ ...b, penyewa: penyewa[b.kode] ?? '—' }));
 }
 
@@ -289,5 +278,5 @@ export function getAdminPengguna(): BarisPengguna[] {
 export type PengaturanData = { bank: string; nomorRekening: string; atasNama: string; batasBayarJam: number; batasPembatalanHari: number };
 
 export function getAdminPengaturan(): PengaturanData {
-  return { bank: 'Bank BCA', nomorRekening: '1234 567 890', atasNama: 'Gelanggang Sport', batasBayarJam: 24, batasPembatalanHari: 1 };
+  return { bank: 'Bank BCA', nomorRekening: '1234 567 890', atasNama: 'FieldGo Sport', batasBayarJam: 1, batasPembatalanHari: 1 };
 }

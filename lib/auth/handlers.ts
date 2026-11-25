@@ -1,7 +1,7 @@
 import { cookieHapus, cookieSesi, bacaCookie, NAMA_COOKIE } from './cookie.ts';
 import type { Limiter } from './ratelimit.ts';
-import { normalisasiEmail, type DaftarInput, type MasukInput } from './rules.ts';
-import { SESI_MS, ambilPengguna, daftar, keluar, kirimUlangVerifikasi, masuk, type AuthDeps } from './service.ts';
+import { normalisasiEmail, type DaftarInput, type LupaInput, type MasukInput, type ResetInput } from './rules.ts';
+import { SESI_MS, ambilPengguna, daftar, keluar, kirimUlangVerifikasi, lupaSandi, masuk, resetSandi, type AuthDeps } from './service.ts';
 
 /** Bentuk minimal yang dipenuhi Zod (`safeParse` + `error.flatten().fieldErrors`). */
 export type Skema<T> = {
@@ -9,8 +9,8 @@ export type Skema<T> = {
 };
 export type HandlerDeps = AuthDeps & {
   secure: boolean;
-  skema: { daftar: Skema<DaftarInput>; masuk: Skema<MasukInput> };
-  limiter: { masuk: Limiter; daftar: Limiter; kirimUlang: Limiter };
+  skema: { daftar: Skema<DaftarInput>; masuk: Skema<MasukInput>; lupa: Skema<LupaInput>; reset: Skema<ResetInput> };
+  limiter: { masuk: Limiter; daftar: Limiter; kirimUlang: Limiter; lupaSandi: Limiter; resetSandi: Limiter };
 };
 
 const json = (status: number, body: unknown, cookie?: string) => {
@@ -64,10 +64,11 @@ export function buatHandlers(d: HandlerDeps) {
       const kunci = `${ip(req)}|${normalisasiEmail(v.data.email)}`;
       const batas = d.limiter.masuk.cek(kunci);
       if (!batas.diizinkan) return dibatasi(batas.ulangiDetik);
-      const r = await masuk(d, { email: v.data.email, kataSandi: v.data.kataSandi, peran: 'penyewa' }); // admin: halaman login terpisah
+      const peran = v.data.peran === 'admin' ? 'admin' : 'penyewa'; // hanya dua nilai yang sah
+      const r = await masuk(d, { email: v.data.email, kataSandi: v.data.kataSandi, peran });
       if (!r.ok) return r.kode === 'AKUN_NONAKTIF' ? json(403, { ok: false, kode: r.kode }) : json(401, { ok: false, kode: r.kode });
       d.limiter.masuk.reset(kunci);
-      return json(200, { ok: true, terverifikasi: r.pengguna.emailTerverifikasiPada !== null }, cookieSesi(r.token, SESI_MS / 1000, d.secure));
+      return json(200, { ok: true, terverifikasi: r.pengguna.emailTerverifikasiPada !== null, peran: r.pengguna.peran }, cookieSesi(r.token, SESI_MS / 1000, d.secure));
     }),
 
     keluar: aman(async (req) => {
@@ -85,6 +86,29 @@ export function buatHandlers(d: HandlerDeps) {
       const batas = d.limiter.kirimUlang.cek(`u:${p.id}`);
       if (!batas.diizinkan) return dibatasi(batas.ulangiDetik);
       return json(200, { ok: true, status: await kirimUlangVerifikasi(d, p.id) });
+    }),
+
+    lupaSandi: aman(async (req) => {
+      const batas = d.limiter.lupaSandi.cek(ip(req));
+      if (!batas.diizinkan) return dibatasi(batas.ulangiDetik);
+      const b = await bacaBody(req);
+      if ('res' in b) return b.res;
+      const v = d.skema.lupa.safeParse(b.body);
+      if (!v.success) return json(400, { ok: false, kode: 'VALIDASI', galat: galatPerField(v.error) });
+      await lupaSandi(d, v.data.email); // selalu "ok": email tak dikenal pun responsnya sama (anti-enumeration)
+      return json(200, { ok: true });
+    }),
+
+    resetSandi: aman(async (req) => {
+      const batas = d.limiter.resetSandi.cek(ip(req));
+      if (!batas.diizinkan) return dibatasi(batas.ulangiDetik);
+      const b = await bacaBody(req);
+      if ('res' in b) return b.res;
+      const v = d.skema.reset.safeParse(b.body);
+      if (!v.success) return json(400, { ok: false, kode: 'VALIDASI', galat: galatPerField(v.error) });
+      const r = await resetSandi(d, v.data);
+      if (r !== 'ok') return json(400, { ok: false, kode: 'TAUTAN_TIDAK_VALID' });
+      return json(200, { ok: true });
     }),
   };
 }

@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { AdminShell } from '@/components/admin/AdminShell';
 import { Catatan, Tabel, Td } from '@/components/admin/ui';
 import { BadgeStatus } from '@/components/status-pesanan';
-import type { BarisAdminPesanan } from '@/lib/demo-fe';
+import type { DaftarPesananAdmin } from '@/lib/admin/pesanan/data';
 import { formatRupiah, labelPanjang } from '@/lib/format';
 import type { StatusPesanan } from '@/lib/slots';
 
@@ -18,17 +18,21 @@ const LABEL: Record<(typeof STATUS)[number], string> = {
   dibatalkan: 'Dibatalkan', ditolak: 'Ditolak', kedaluwarsa: 'Kedaluwarsa',
 };
 
-/** Daftar semua pesanan admin (FR-ADM-08): pencarian q (kode/penyewa/lapangan) + filter status, keduanya di server. */
-export function DaftarPesananView({ daftar, q, status }: { daftar: BarisAdminPesanan[]; q: string; status: StatusPesanan | 'semua' }) {
-  const kunci = q.trim().toLowerCase();
-  const terlihat = daftar.filter((b) =>
-    (status === 'semua' || b.status === status) &&
-    (!kunci || [b.kode, b.penyewa, b.lapanganNama].some((x) => x.toLowerCase().includes(kunci))));
+/** Daftar semua pesanan admin (FR-ADM-08): pencarian + filter status di server, 50/halaman. */
+export function DaftarPesananView({ data, q, status }: { data: DaftarPesananAdmin; q: string; status: StatusPesanan | 'semua' }) {
+  const hrefDengan = (halaman: number) => {
+    const param = new URLSearchParams();
+    if (q) param.set('q', q);
+    if (status !== 'semua') param.set('status', status);
+    if (halaman > 1) param.set('halaman', String(halaman));
+    const qs = param.toString();
+    return `/admin/pesanan${qs ? '?' + qs : ''}`;
+  };
 
   return (
     <AdminShell aktif="Pesanan" judul="Daftar pesanan"
       keterangan="Seluruh pesanan dari semua penyewa. Gunakan pencarian dan filter status untuk menelusuri (PRD 8.6).">
-      {/* Pencarian server-side (FE dulu): submit form GET ke /admin/pesanan?q=… */}
+      {/* Pencarian server-side: submit form GET ke /admin/pesanan?q=… */}
       <form role="search" aria-label="Cari pesanan" action="/admin/pesanan" method="get" className="flex flex-wrap items-center gap-2.5">
         <input type="search" name="q" defaultValue={q} placeholder="Cari kode, penyewa, atau lapangan…"
           aria-label="Kata kunci pencarian"
@@ -54,14 +58,14 @@ export function DaftarPesananView({ daftar, q, status }: { daftar: BarisAdminPes
       </nav>
 
       <div className="mt-6">
-        {terlihat.length === 0 ? (
-          <Tabel ariaLabel="Daftar pesanan" head={['Kode']} kosong={`Tidak ada pesanan yang cocok${kunci ? ` dengan kata kunci “${q}”` : ''}.`} />
+        {data.baris.length === 0 ? (
+          <Tabel ariaLabel="Daftar pesanan" head={['Kode']} kosong={`Tidak ada pesanan yang cocok${q ? ` dengan kata kunci “${q}”` : ''}.`} />
         ) : (
           <Tabel ariaLabel="Daftar pesanan" head={['Kode', 'Penyewa', 'Lapangan', 'Jadwal main', 'Total', 'Status']}>
-            {terlihat.map((b) => (
+            {data.baris.map((b) => (
               <tr key={b.kode} className="border-b border-line last:border-b-0 hover:bg-mist/60">
                 <Td strong>
-                  <Link href={`/riwayat/${b.kode}`} className="font-display font-bold text-ink underline hover:text-brand">{b.kode}</Link>
+                  <Link href={`/admin/pesanan/${b.kode}`} className="font-display font-bold text-ink underline hover:text-brand">{b.kode}</Link>
                 </Td>
                 <Td>{b.penyewa}</Td>
                 <Td strong>{b.lapanganNama}</Td>
@@ -73,8 +77,27 @@ export function DaftarPesananView({ daftar, q, status }: { daftar: BarisAdminPes
           </Tabel>
         )}
       </div>
+
+      {/* Pagination server-side: ?halaman=n membawa q dan status */}
+      {data.totalHalaman > 1 && (
+        <nav aria-label="Navigasi halaman" className="mt-5 flex items-center justify-between">
+          {data.halaman > 1 ? (
+            <Link href={hrefDengan(data.halaman - 1)} className="flex h-11 items-center rounded-full border-[1.5px] border-line bg-mist px-5 text-[14px] font-bold text-ink no-underline">
+              ← Sebelumnya
+            </Link>
+          ) : <span />}
+          <span className="text-[13px] font-semibold text-muted">Halaman {data.halaman} dari {data.totalHalaman}</span>
+          {data.halaman < data.totalHalaman ? (
+            <Link href={hrefDengan(data.halaman + 1)} className="flex h-11 items-center rounded-full border-[1.5px] border-line bg-mist px-5 text-[14px] font-bold text-ink no-underline">
+              Berikutnya →
+            </Link>
+          ) : <span />}
+        </nav>
+      )}
+
       <Catatan>
-        {terlihat.length} dari {daftar.length} pesanan ditampilkan. Harga dikunci per pesanan (BR-06); perubahan tarif tidak mengubah total di sini.
+        {data.total} pesanan cocok dengan filter; {data.baris.length} ditampilkan pada halaman {data.halaman}.
+        Harga dikunci per pesanan (BR-06); perubahan tarif tidak mengubah total di sini.
       </Catatan>
     </AdminShell>
   );

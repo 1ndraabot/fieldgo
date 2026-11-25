@@ -13,22 +13,59 @@ datasource db {
 enum TipeHari {
   weekday
   weekend
+
+  @@map("tipe_hari")
 }
 
 enum PeranPengguna {
   penyewa
   admin
+
+  @@map("peran_pengguna")
 }
 
 enum JenisToken {
   verifikasi_email
   reset_sandi
+
+  @@map("jenis_token")
 }
 
 enum StatusVerifikasi {
   menunggu
   disetujui
   ditolak
+
+  @@map("status_verifikasi")
+}
+
+enum StatusPengajuan {
+  menunggu
+  disetujui
+  ditolak
+
+  @@map("status_pengajuan")
+}
+
+enum StatusPembayaranGateway {
+  pending
+  dibayar
+  gagal
+  kedaluwarsa
+  refund
+  sebagian_refund
+  perlu_tinjau
+
+  @@map("status_pembayaran_gateway")
+}
+
+enum StatusRefund {
+  menunggu
+  diproses
+  berhasil
+  gagal
+
+  @@map("status_refund")
 }
 
 enum StatusPesanan {
@@ -40,6 +77,8 @@ enum StatusPesanan {
   kedaluwarsa
   dibatalkan
   selesai
+
+  @@map("status_pesanan")
 }
 
 model JenisOlahraga {
@@ -55,19 +94,41 @@ model Lapangan {
   jenisOlahragaId Int            @map("jenis_olahraga_id")
   nama            String
   deskripsi       String?
-  alamat          String
+  alamat          String?
   latitude        Decimal?       @db.Decimal(9, 6)
   longitude       Decimal?       @db.Decimal(9, 6)
   aktif           Boolean        @default(true)
   jenisOlahraga   JenisOlahraga  @relation(fields: [jenisOlahragaId], references: [id])
   foto            FotoLapangan[]
+  fasilitas       LapanganFasilitas[]
   jamOperasional  JamOperasional[]
   tarif           Tarif[]
   blokir          BlokirJadwal[]
   pesanan         Pesanan[]
   slot            SlotPesanan[]
 
+  @@index([jenisOlahragaId])
   @@map("lapangan")
+}
+
+// Daftar induk fasilitas + relasi banyak-ke-banyak ke lapangan (FR-ADM-02).
+model Fasilitas {
+  id       Int                 @id @default(autoincrement())
+  nama     String              @unique
+  lapangan LapanganFasilitas[]
+
+  @@map("fasilitas")
+}
+
+model LapanganFasilitas {
+  lapanganId  Int       @map("lapangan_id")
+  fasilitasId Int       @map("fasilitas_id")
+  lapangan    Lapangan  @relation(fields: [lapanganId], references: [id])
+  fasilitas   Fasilitas @relation(fields: [fasilitasId], references: [id])
+
+  @@id([lapanganId, fasilitasId])
+  @@index([fasilitasId])
+  @@map("lapangan_fasilitas")
 }
 
 model FotoLapangan {
@@ -117,7 +178,9 @@ model BlokirJadwal {
   jamSelesai     Int?     @map("jam_selesai")
   alasan         String
   dibuatPada     DateTime @default(now()) @map("dibuat_pada")
+  dibuatOleh     Int?     @map("dibuat_oleh")
   lapangan       Lapangan @relation(fields: [lapanganId], references: [id])
+  admin          Pengguna? @relation("BlokirDibuatOleh", fields: [dibuatOleh], references: [id])
 
   @@index([lapanganId, tanggalMulai, tanggalSelesai])
   @@map("blokir_jadwal")
@@ -136,6 +199,7 @@ model Pengguna {
   pesanan                 Pesanan[]
   sesi                    Sesi[]
   token                   TokenAkun[]
+  blokirDibuat            BlokirJadwal[] @relation("BlokirDibuatOleh")
 
   @@map("pengguna")
 }
@@ -158,7 +222,10 @@ model Pesanan {
   lapangan        Lapangan      @relation(fields: [lapanganId], references: [id])
   slot            SlotPesanan[]
   pembayaran      Pembayaran?
+  pembayaranGateway PembayaranGateway[]
+  refund          Refund[]
   riwayat         RiwayatStatus[]
+  pengajuanPembatalan PengajuanPembatalan?
 
   @@index([penggunaId, dibuatPada])
   @@index([status, batasBayarPada])
@@ -225,6 +292,93 @@ model Pembayaran {
   @@map("pembayaran")
 }
 
+// Satu baris per percobaan transaksi payment gateway. `order_id` unik milik provider.
+// Pesanan boleh punya beberapa percobaan (mis. kedaluwarsa lalu bayar ulang), tetapi hanya
+// satu yang boleh berstatus `dibayar`.
+model PembayaranGateway {
+  id             Int                    @id @default(autoincrement())
+  pesananId      Int                    @map("pesanan_id")
+  provider       String                 @default("xendit")
+  orderId        String                 @unique @map("order_id")
+  providerRef    String?                @map("provider_ref") // invoice id Xendit; dipakai refund & sinkron
+  metode         String?
+  jumlah         Int
+  status         StatusPembayaranGateway @default(pending)
+  token          String?
+  redirectUrl    String?                @map("redirect_url")
+  kedaluwarsaPada DateTime?             @map("kedaluwarsa_pada")
+  dibayarPada    DateTime?              @map("dibayar_pada")
+  perluTinjau    Boolean                @default(false) @map("perlu_tinjau")
+  alasanTinjau   String?                @map("alasan_tinjau")
+  dibuatPada     DateTime               @default(now()) @map("dibuat_pada")
+  pesanan        Pesanan                @relation(fields: [pesananId], references: [id])
+  refund         Refund[]
+
+  @@index([pesananId])
+  @@index([status])
+  @@index([providerRef])
+  @@map("pembayaran_gateway")
+}
+
+// Notifikasi mentah dari provider. `event_key` unik = kunci idempotensi.
+model GatewayEvent {
+  id           Int      @id @default(autoincrement())
+  provider     String   @default("xendit")
+  eventKey     String   @unique @map("event_key")
+  orderId      String   @map("order_id")
+  tipe         String
+  payload      Json
+  diterimaPada DateTime @default(now()) @map("diterima_pada")
+
+  @@index([orderId])
+  @@map("gateway_event")
+}
+
+// Refund terpisah dari status pesanan: pesanan bisa sudah Dibatalkan sementara refund
+// masih diproses/gagal dan diselesaikan manual oleh admin.
+model Refund {
+  id                  Int          @id @default(autoincrement())
+  pesananId           Int          @map("pesanan_id")
+  pembayaranGatewayId Int?         @map("pembayaran_gateway_id")
+  nominal             Int
+  alasan              String
+  cara                String // "gateway" | "manual"
+  status              StatusRefund @default(menunggu)
+  referenceGateway    String?      @map("reference_gateway")
+  catatan             String?
+  diputuskanOleh      Int?         @map("diputuskan_oleh")
+  diputuskanPada      DateTime?    @map("diputuskan_pada")
+  selesaiPada         DateTime?    @map("selesai_pada")
+  pesanan             Pesanan      @relation(fields: [pesananId], references: [id])
+  pembayaranGateway   PembayaranGateway? @relation(fields: [pembayaranGatewayId], references: [id])
+
+  @@index([pesananId])
+  @@index([status])
+  @@map("refund")
+}
+
+// Pengajuan pembatalan pesanan Terkonfirmasi (FR-CAN-02/03). Satu per pesanan: UNIQUE(pesanan_id).
+// Slot tetap aktif sampai admin memutuskan; keputusan mencatat catatan, nominal refund, dan pemutus.
+model PengajuanPembatalan {
+  id             Int             @id @default(autoincrement())
+  pesananId      Int             @unique @map("pesanan_id")
+  namaPemesan    String          @map("nama_pemesan")
+  kontak         String
+  alasan         String
+  namaBank       String          @map("nama_bank")
+  nomorRekening  String          @map("nomor_rekening")
+  atasNama       String          @map("atas_nama")
+  diajukanPada   DateTime        @map("diajukan_pada")
+  status         StatusPengajuan @default(menunggu)
+  catatanAdmin   String?         @map("catatan_admin")
+  nominalRefund  Int?            @map("nominal_refund")
+  diputuskanOleh Int?            @map("diputuskan_oleh")
+  diputuskanPada DateTime?       @map("diputuskan_pada")
+  pesanan        Pesanan         @relation(fields: [pesananId], references: [id])
+
+  @@map("pengajuan_pembatalan")
+}
+
 model RiwayatStatus {
   id         Int            @id @default(autoincrement())
   pesananId  Int            @map("pesanan_id")
@@ -239,10 +393,11 @@ model RiwayatStatus {
   @@map("riwayat_status")
 }
 
-// Pasangan nama-nilai: rekening_bank, rekening_nomor, rekening_nama (PRD Bagian 5/7).
+// Pasangan kunci-nilai jsonb (bentuk fieldgo di Supabase): rekening_bank, rekening_nomor,
+// rekening_nama, batas_bayar_jam, batas_pembatalan_hari (PRD Bagian 5/7).
 model Pengaturan {
-  nama  String @id
-  nilai String
+  kunci String @id
+  nilai Json
 
   @@map("pengaturan")
 }

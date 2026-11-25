@@ -1,11 +1,13 @@
 import type { Metadata } from 'next';
 import { BlacklistView } from '@/components/admin/BlacklistView';
-import { getAdminBlacklist, getAdminLapangan } from '@/lib/demo-fe';
+import { getDaftarBlokir, getLapanganBlokir } from '@/lib/admin/blacklist/data';
+import { wajibAdmin } from '@/lib/auth/session';
 
-export const metadata: Metadata = { title: 'Gelanggang — Admin · Blacklist' };
+export const metadata: Metadata = { title: 'FieldGo — Admin · Blacklist' };
+export const dynamic = 'force-dynamic'; // daftar blokir dan pilihan lapangan harus terbaru
 
-// FE dulu: data dummy. Blokir + pembatalan otomatis pesanan terdampak (FR-ADM-05, AC-15) menyusul.
-export default function AdminBlacklist() {
-  const { baris, bentrokDemo } = getAdminBlacklist();
-  return <BlacklistView daftarLapangan={getAdminLapangan().map((l) => ({ id: l.id, nama: l.nama }))} baris={baris} bentrokDemo={bentrokDemo} />;
+export default async function AdminBlacklist() {
+  await wajibAdmin('/admin/blacklist');
+  const [baris, daftarLapangan] = await Promise.all([getDaftarBlokir(), getLapanganBlokir()]);
+  return <BlacklistView daftarLapangan={daftarLapangan} baris={baris} />;
 }

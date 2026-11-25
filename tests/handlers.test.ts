@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { hashPassword } from '../lib/auth/crypto.ts';
 import { buatHandlers, type Skema } from '../lib/auth/handlers.ts';
 import { buatLimiter } from '../lib/auth/ratelimit.ts';
-import { validasiDaftar, validasiMasuk, type DaftarInput, type MasukInput } from '../lib/auth/rules.ts';
+import { validasiDaftar, validasiLupa, validasiMasuk, validasiReset, type DaftarInput, type LupaInput, type MasukInput, type ResetInput } from '../lib/auth/rules.ts';
 import type { AuthDeps } from '../lib/auth/service.ts';
 import { buatMemoryStore } from './helpers/memory-store.ts';
 
@@ -20,16 +20,23 @@ const skema = <T extends Record<string, unknown>>(fn: (i: T) => Record<string, s
 
 async function siapkan() {
   const m = buatMemoryStore();
-  const surat: { teks: string }[] = [];
+  const surat: { teks: string; subjek: string }[] = [];
   const t = { now: 1_000_000 };
   const deps: AuthDeps = { store: m.store, baseUrl: 'http://app.test', sekarang: () => new Date(t.now), mailer: { kirim: async (s) => { surat.push(s); } } };
   const h = buatHandlers({
     ...deps, secure: false,
-    skema: { daftar: skema<DaftarInput>(validasiDaftar), masuk: skema<MasukInput>(validasiMasuk) },
+    skema: {
+      daftar: skema<DaftarInput>(validasiDaftar),
+      masuk: skema<MasukInput>(validasiMasuk),
+      lupa: skema<LupaInput>(validasiLupa),
+      reset: skema<ResetInput>(validasiReset),
+    },
     limiter: {
       masuk: buatLimiter({ maks: 3, jendelaMs: 600_000, sekarang: () => t.now }),
       daftar: buatLimiter({ maks: 2, jendelaMs: 900_000, sekarang: () => t.now }),
       kirimUlang: buatLimiter({ maks: 1, jendelaMs: 60_000, sekarang: () => t.now }),
+      lupaSandi: buatLimiter({ maks: 2, jendelaMs: 900_000, sekarang: () => t.now }),
+      resetSandi: buatLimiter({ maks: 3, jendelaMs: 600_000, sekarang: () => t.now }),
     },
   });
   m.users.push({ id: 1, nama: 'Rani', email: 'rani@email.com', kataSandi: await hashPassword('Lapangan24!'), nomorKontak: '081234567890', peran: 'penyewa', emailTerverifikasiPada: null, dinonaktifkanPada: null });
@@ -61,7 +68,7 @@ test('masuk: sukses mengatur cookie sesi HttpOnly dan bisa dipakai keluar', asyn
   const s = await siapkan();
   const r = await s.h.masuk(post('/api/auth/masuk', LOGIN));
   assert.equal(r.status, 200);
-  assert.deepEqual(await r.json(), { ok: true, terverifikasi: false });
+  assert.deepEqual(await r.json(), { ok: true, terverifikasi: false, peran: 'penyewa' });
   const c = r.headers.get('set-cookie')!;
   assert.match(c, /^sesi=[A-Za-z0-9_-]{43}; Path=\/; HttpOnly; SameSite=Lax; Max-Age=604800$/);
   const token = sesiDari(r)!;
@@ -136,4 +143,60 @@ test('galat tak terduga: 500 generik tanpa membocorkan detail', async () => {
   assert.ok(!teks.includes('rahasia'));
   assert.equal(JSON.parse(teks).kode, 'GALAT_SERVER');
   mock.restoreAll();
+});
+
+test('lupa-sandi: selalu 200 (anti-enumeration), email hanya bila terdaftar, dibatasi per IP', async () => {
+  const s = await siapkan();
+  // email tak dikenal: tetap 200, tidak ada email
+  const asing = await s.h.lupaSandi(post('/api/auth/lupa-sandi', { email: 'takada@contoh.id' }));
+  assert.equal(asing.status, 200);
+  assert.equal(s.surat.length, 0);
+  // email dikenal: 200 + email terkirim dengan tautan reset
+  const ok = await s.h.lupaSandi(post('/api/auth/lupa-sandi', { email: 'rani@email.com' }));
+  assert.equal(ok.status, 200);
+  assert.equal(s.surat.length, 1);
+  assert.match(s.surat[0].teks, /\/reset-sandi\?token=[A-Za-z0-9_-]{43}/);
+  assert.equal(s.surat[0].subjek, 'Reset kata sandi FieldGo');
+  // dibatasi setelah 3 permintaan per IP (limiter uji: maks 2)
+  await s.h.lupaSandi(post('/api/auth/lupa-sandi', { email: 'rani@email.com' }, { 'x-forwarded-for': '2.2.2.2' }));
+  await s.h.lupaSandi(post('/api/auth/lupa-sandi', { email: 'rani@email.com' }, { 'x-forwarded-for': '2.2.2.2' }));
+  const d = await s.h.lupaSandi(post('/api/auth/lupa-sandi', { email: 'rani@email.com' }, { 'x-forwarded-for': '2.2.2.2' }));
+  assert.equal(d.status, 429);
+});
+
+test('reset-sandi: token satu-pakai, sandi berganti, semua sesi lama gugur', async () => {
+  const s = await siapkan();
+  await s.h.lupaSandi(post('/api/auth/lupa-sandi', { email: 'rani@email.com' }));
+  const tautan = s.surat[0].teks;
+  const token = /\/reset-sandi\?token=([A-Za-z0-9_-]+)/.exec(tautan)![1];
+  // masuk dengan sandi lama dulu, untuk memastikan sesinya gugur setelah reset
+  const sesiLama = sesiDari(await s.h.masuk(post('/api/auth/masuk', LOGIN)))!;
+
+  const r = await s.h.resetSandi(post('/api/auth/reset-sandi', { token, kataSandi: 'SandiBaru99!' }));
+  assert.equal(r.status, 200);
+  assert.deepEqual(await r.json(), { ok: true });
+
+  // token sudah terpakai: dipakai kedua kali ditolak
+  const ulang = await s.h.resetSandi(post('/api/auth/reset-sandi', { token, kataSandi: 'SandiBaru99!' }));
+  assert.equal(ulang.status, 400);
+  assert.equal((await ulang.json()).kode, 'TAUTAN_TIDAK_VALID');
+
+  // sesi lama gugur; sandi baru bisa masuk, sandi lama ditolak
+  assert.equal((await s.h.keluar(post('/api/auth/keluar', {}, { cookie: `sesi=${sesiLama}` }))).status, 200);
+  const kirimUlang = await s.h.kirimUlang(post('/api/auth/kirim-ulang', {}, { cookie: `sesi=${sesiLama}` }));
+  assert.equal(kirimUlang.status, 401); // sesi lama sudah tidak ada
+  assert.equal((await s.h.masuk(post('/api/auth/masuk', { ...LOGIN, kataSandi: 'Lapangan24!' }))).status, 401);
+  assert.equal((await s.h.masuk(post('/api/auth/masuk', { ...LOGIN, kataSandi: 'SandiBaru99!' }))).status, 200);
+});
+
+test('reset-sandi: token kedaluwarsa / tidak ada ditolak; validasi 400', async () => {
+  const s = await siapkan();
+  assert.equal((await s.h.resetSandi(post('/api/auth/reset-sandi', { token: 'x'.repeat(43), kataSandi: 'SandiBaru99!' }))).status, 400);
+  assert.equal((await s.h.resetSandi(post('/api/auth/reset-sandi', { token: '', kataSandi: 'pendek' }))).status, 400);
+  // token benar tetap bisa dipakai setelah validasi yang gagal tidak mengubah apa pun
+  await s.h.lupaSandi(post('/api/auth/lupa-sandi', { email: 'rani@email.com' }));
+  const token = /token=([A-Za-z0-9_-]+)/.exec(s.surat[0].teks)![1];
+  // kedaluwarsa: majukan waktu 1 jam
+  s.t.now += 3600_001;
+  assert.equal((await s.h.resetSandi(post('/api/auth/reset-sandi', { token, kataSandi: 'SandiBaru99!' }))).status, 400);
 });

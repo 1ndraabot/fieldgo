@@ -1,6 +1,6 @@
 // Aturan validasi: fungsi murni, dipakai form di browser DAN server (satu sumber kebenaran).
 export type DaftarInput = { nama: string; email: string; nomorKontak: string; kataSandi: string; setuju: boolean };
-export type MasukInput = { email: string; kataSandi: string };
+export type MasukInput = { email: string; kataSandi: string; peran?: string };
 export type Galat = Record<string, string>;
 
 export const normalisasiEmail = (s: string) => s.trim().toLowerCase();
@@ -40,6 +40,22 @@ export function validasiMasuk(i: MasukInput): Galat {
   const e = validasiEmail(i.email);
   if (e) g.email = e;
   if (!i.kataSandi) g.kataSandi = 'Kata sandi wajib diisi.'; // login tidak menerapkan aturan panjang
+  return g;
+}
+
+export type LupaInput = { email: string };
+export type ResetInput = { token: string; kataSandi: string };
+
+export function validasiLupa(i: LupaInput): Galat {
+  const e = validasiEmail(i.email);
+  return e ? { email: e } : {};
+}
+
+export function validasiReset(i: ResetInput): Galat {
+  const g: Galat = {};
+  if (!i.token) g.token = 'Tautan tidak lengkap. Minta tautan baru dari halaman lupa kata sandi.';
+  const s = validasiSandi(i.kataSandi);
+  if (s) g.kataSandi = s;
   return g;
 }
 

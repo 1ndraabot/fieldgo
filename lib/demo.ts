@@ -86,12 +86,12 @@ export function demoJadwal(now: Date): { terkonfirmasi: PesananJadwal[]; menungg
   const base = { lapanganNama: 'Futsal Arena A', status: 'terkonfirmasi' as const };
   return {
     terkonfirmasi: [
-      { ...base, kode: 'GLG-DEMO-0001', tanggal: tanggal(1), jamMulai: 19, jamSelesai: 21, jumlahJam: 2, totalHarga: 180000, batasBayarPada: now },
-      { ...base, kode: 'GLG-DEMO-0002', tanggal: tanggal(3), jamMulai: 8, jamSelesai: 9, jumlahJam: 1, totalHarga: 90000, batasBayarPada: now },
+      { ...base, kode: 'FGO-DEMO-0001', tanggal: tanggal(1), jamMulai: 19, jamSelesai: 21, jumlahJam: 2, totalHarga: 180000, batasBayarPada: now },
+      { ...base, kode: 'FGO-DEMO-0002', tanggal: tanggal(3), jamMulai: 8, jamSelesai: 9, jumlahJam: 1, totalHarga: 90000, batasBayarPada: now },
     ],
     menunggu: [
       {
-        kode: 'GLG-DEMO-0003', lapanganNama: 'Futsal Arena A', tanggal: tanggal(2), jamMulai: 20, jamSelesai: 22,
+        kode: 'FGO-DEMO-0003', lapanganNama: 'Futsal Arena A', tanggal: tanggal(2), jamMulai: 20, jamSelesai: 22,
         jumlahJam: 2, totalHarga: 180000, status: 'menunggu_pembayaran', batasBayarPada: new Date(now.getTime() + 5 * 3600_000),
       },
     ],
@@ -112,6 +112,6 @@ export function demoHalamanBayar(kode: string, now: Date): HalamanBayar {
     jamSelesai: 22,
     totalHarga: 180000,
     slot: [{ jam: 20, harga: 90000 }, { jam: 21, harga: 90000 }],
-    rekening: { bank: 'Bank BCA', nomor: '1234 567 890', nama: 'Gelanggang Sport' },
+    rekening: { bank: 'Bank BCA', nomor: '1234 567 890', nama: 'FieldGo Sport' },
   };
 }

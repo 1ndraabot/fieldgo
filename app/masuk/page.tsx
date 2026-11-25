@@ -6,7 +6,7 @@ import { DEMO } from '@/lib/demo';
 import { amanNext } from '@/lib/auth/rules';
 import { penggunaSaatIni } from '@/lib/auth/session';
 
-export const metadata: Metadata = { title: 'Gelanggang — Masuk' };
+export const metadata: Metadata = { title: 'FieldGo — Masuk' };
 
 export default async function Masuk({ searchParams }: { searchParams: Promise<{ next?: string | string[] }> }) {
   const sp = await searchParams;

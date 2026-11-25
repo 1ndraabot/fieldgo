@@ -9,7 +9,7 @@ const NAV: [IconName, string, string][] = [
   ['card', 'Tarif', '/admin/tarif'],
   ['clock', 'Jam operasional', '/admin/jam-operasional'],
   ['cancel', 'Blacklist', '/admin/blacklist'],
-  ['check', 'Verifikasi', '/admin/verifikasi'],
+  ['check', 'Pembayaran', '/admin/pembayaran'],
   ['calendar', 'Pesanan', '/admin/pesanan'],
   ['search', 'Rekap', '/admin/rekap'],
   ['shield', 'Pengguna', '/admin/pengguna'],
@@ -48,7 +48,7 @@ export function AdminShell({ aktif, judul, keterangan, aksi, children }: {
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
               <span className="inline-flex items-center gap-2 rounded-full bg-mint px-3.5 py-1.5 text-xs font-bold text-[#0A6B3A]">
-                <Icon name="shield" size={13} stroke="#0A6B3A" width={2.8} />Panel Admin · Mode tampilan
+                <Icon name="shield" size={13} stroke="#0A6B3A" width={2.8} />Panel Admin
               </span>
               <h1 className="mt-3 font-display text-[clamp(30px,3.8vw,44px)] font-bold leading-[1.1] tracking-[-0.035em]">{judul}</h1>
               {keterangan && <p className="mt-2 max-w-[640px] text-[15px] leading-relaxed text-muted">{keterangan}</p>}

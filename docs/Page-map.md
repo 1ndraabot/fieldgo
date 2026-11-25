@@ -63,7 +63,7 @@ import { NamaView } from '@/components/NamaView';
 import { wajibPenyewa } from '@/lib/auth/session'; // atau penggunaSaatIni() untuk publik
 import { getNamaData } from '@/lib/<fitur>-data';
 
-export const metadata: Metadata = { title: 'Gelanggang — <Judul>' };
+export const metadata: Metadata = { title: 'FieldGo — <Judul>' };
 export const dynamic = 'force-dynamic'; // bila data berubah waktu-nyata
 
 const PARAM_REGEX = /^[A-Za-z0-9-]{4,40}$/;

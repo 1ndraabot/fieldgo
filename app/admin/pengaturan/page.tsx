@@ -1,10 +1,12 @@
 import type { Metadata } from 'next';
 import { PengaturanView } from '@/components/admin/PengaturanView';
-import { getAdminPengaturan } from '@/lib/demo-fe';
+import { bacaPengaturan } from '@/lib/admin/pengaturan/data';
+import { wajibAdmin } from '@/lib/auth/session';
 
-export const metadata: Metadata = { title: 'Gelanggang — Admin · Pengaturan' };
+export const metadata: Metadata = { title: 'FieldGo — Admin · Pengaturan' };
+export const dynamic = 'force-dynamic'; // nilai terbaru setelah admin menyimpan
 
-// FE dulu: data dummy. Penyimpanan pengaturan sungguhan (FR-ADM-11) menyusul bersama backend.
-export default function AdminPengaturan() {
-  return <PengaturanView data={getAdminPengaturan()} />;
+export default async function AdminPengaturan() {
+  await wajibAdmin('/admin/pengaturan');
+  return <PengaturanView data={await bacaPengaturan()} />;
 }

@@ -18,7 +18,7 @@ const sora = localFont({
 
 export const metadata: Metadata = {
   icons: { icon: "/favicon.svg" },
-  title: "Gelanggang — Pesan Lapangan, Jam demi Jam",
+  title: "FieldGo — Pesan Lapangan, Jam demi Jam",
   description:
     "Cek slot kosong, pilih jam, lalu unggah bukti transfer. Tanpa chat ke admin, tanpa bentrok jadwal.",
 };

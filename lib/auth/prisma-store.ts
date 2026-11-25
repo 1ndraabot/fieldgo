@@ -31,6 +31,8 @@ export const prismaStore: AuthStore = {
 
   async tandaiTerverifikasi(id, now) { await db.pengguna.update({ where: { id }, data: { emailTerverifikasiPada: now } }); },
 
+  async ubahSandi(id, kataSandi) { await db.pengguna.update({ where: { id }, data: { kataSandi } }); },
+
   async buatSesi(data) { await db.sesi.create({ data }); },
 
   async cariSesi(tokenHash, now) {
@@ -39,4 +41,6 @@ export const prismaStore: AuthStore = {
   },
 
   async hapusSesi(tokenHash) { await db.sesi.deleteMany({ where: { tokenHash } }); },
+
+  async hapusSesiPengguna(penggunaId) { await db.sesi.deleteMany({ where: { penggunaId } }); },
 };

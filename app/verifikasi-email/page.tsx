@@ -10,7 +10,7 @@ import { penggunaSaatIni } from '@/lib/auth/session';
 import { verifikasiEmail } from '@/lib/auth/service';
 import { DEMO } from '@/lib/demo';
 
-export const metadata: Metadata = { title: 'Gelanggang — Verifikasi email' };
+export const metadata: Metadata = { title: 'FieldGo — Verifikasi email' };
 
 const tombolHijau = 'btn flex h-14 w-full items-center justify-center rounded-full bg-brand text-base font-bold text-white no-underline';
 const tombolGaris = 'btn flex h-14 w-full items-center justify-center rounded-full border-[1.5px] border-ink text-base font-bold no-underline';

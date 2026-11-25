@@ -4,7 +4,7 @@ import { Footer } from '@/components/Footer';
 import { Header } from '@/components/Header';
 import { Icon } from '@/components/icons';
 import { BadgeStatus, STATUS_PESANAN } from '@/components/status-pesanan';
-import type { DetailPesanan } from '@/lib/demo-fe';
+import type { DetailPesanan } from '@/lib/riwayat/types';
 import { formatRupiah, labelDibuat, labelPanjang } from '@/lib/format';
 
 const pad = 'px-[clamp(16px,4.5vw,64px)]';
@@ -49,7 +49,7 @@ export function PesananDetailView({ pengguna, data, bisaAjukanBatal }: {
               <div><dt className="text-[13px] font-bold uppercase tracking-wider text-muted">Jam main</dt><dd className="mt-1 font-semibold">{rentang(data)} · {data.jumlahJam} jam</dd></div>
               <div><dt className="text-[13px] font-bold uppercase tracking-wider text-muted">Dibuat</dt><dd className="mt-1 text-muted">{labelDibuat(data.dibuatPada)}</dd></div>
               {data.status === 'menunggu_pembayaran' && data.batasBayarPada && (
-                <div><dt className="text-[13px] font-bold uppercase tracking-wider text-muted">Batas unggah bukti (BR-07)</dt><dd className="mt-1 font-bold text-[#7A4B00]">{labelDibuat(data.batasBayarPada)}</dd></div>
+                <div><dt className="text-[13px] font-bold uppercase tracking-wider text-muted">Batas pembayaran (BR-07)</dt><dd className="mt-1 font-bold text-[#7A4B00]">{labelDibuat(data.batasBayarPada)}</dd></div>
               )}
             </dl>
           </section>
@@ -59,7 +59,7 @@ export function PesananDetailView({ pengguna, data, bisaAjukanBatal }: {
             <div className="mt-5"><Banner nada="merah" ikon="alert">Bukti ditolak (final — BR-11): {data.alasanPenolakan} Pesan ulang dengan slot baru.</Banner></div>
           )}
           {data.status === 'terkonfirmasi' && !bisaAjukanBatal && (
-            <div className="mt-5"><Banner nada="amber" ikon="info" role="status">Batas pembatalan telah terlewati (H-1). Pesanan ini berlaku seperti biasa (FR-CAN-01).</Banner></div>
+            <div className="mt-5"><Banner nada="amber" ikon="info" role="status">Batas pembatalan telah terlewati. Pesanan ini berlaku seperti biasa (FR-CAN-01).</Banner></div>
           )}
           {data.pengajuanBatal && (
             <div className="mt-5"><Banner nada="amber" ikon="info" role="status">

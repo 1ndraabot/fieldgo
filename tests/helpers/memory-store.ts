@@ -28,12 +28,16 @@ export function buatMemoryStore() {
       return t.penggunaId;
     },
     async tandaiTerverifikasi(id, now) { const u = users.find((x) => x.id === id); if (u) u.emailTerverifikasiPada = now; },
+    async ubahSandi(id, kataSandiHash) { const u = users.find((x) => x.id === id); if (u) u.kataSandi = kataSandiHash; },
     async buatSesi(d) { sesi.push(d); },
     async cariSesi(tokenHash, now) {
       const s = sesi.find((x) => x.tokenHash === tokenHash && x.kedaluwarsaPada > now);
       return s ? users.find((u) => u.id === s.penggunaId) ?? null : null;
     },
     async hapusSesi(tokenHash) { const i = sesi.findIndex((x) => x.tokenHash === tokenHash); if (i >= 0) sesi.splice(i, 1); },
+    async hapusSesiPengguna(penggunaId) {
+      for (let i = sesi.length - 1; i >= 0; i--) if (sesi[i].penggunaId === penggunaId) sesi.splice(i, 1);
+    },
   };
   return { store, users, tokens, sesi };
 }

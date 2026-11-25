@@ -20,7 +20,7 @@ export type BerandaData = {
   stats: { lapangan: number; cabang: number; jamTerpesan30Hari: number };
 };
 
-const ilustrasiUntuk = (olahraga: string): Ilustrasi => {
+export const ilustrasiUntuk = (olahraga: string): Ilustrasi => {
   const n = olahraga.toLowerCase();
   if (n.includes('badminton')) return 'badminton';
   if (n.includes('basket')) return 'basket';
