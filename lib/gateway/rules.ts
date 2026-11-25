@@ -165,12 +165,18 @@ export function samakanAmanWaktu(diterima: string, diharapkan: string): boolean 
 export const nominalCocok = (notif: number | null, db: number): boolean => notif === null || notif === db;
 
 /**
- * Simulasi pembayaran test mode hanya untuk pengembangan: provider Xendit dengan kunci
- * test (xnd_development_) dan bukan production. Menentukan tampilnya tombol
- * "selesaikan pembayaran" yang memicu endpoint simulasi resmi Xendit.
+ * Simulasi pembayaran test mode: provider Xendit dengan kunci test (xnd_development_).
+ * Di development selalu aktif; di production hanya bila GATEWAY_SIMULASI_TEST="true"
+ * (saklar demo — matikan setelahnya, karena siapa pun yang login bisa mengonfirmasi
+ * pesanan tanpa bayar). Dengan kunci live simulasi otomatis mati di env mana pun.
+ * Menentukan tampilnya tombol "selesaikan pembayaran" yang memicu endpoint simulasi
+ * resmi Xendit.
  */
-export function simulasiTestAktif(e: { provider: string; secretKey?: string; nodeEnv: string }): boolean {
-  return e.nodeEnv !== 'production' && e.provider === 'xendit' && (e.secretKey ?? '').startsWith('xnd_development_');
+export function simulasiTestAktif(e: { provider: string; secretKey?: string; nodeEnv: string; izinFlag?: string }): boolean {
+  const kunciTest = e.provider === 'xendit' && (e.secretKey ?? '').startsWith('xnd_development_');
+  if (!kunciTest) return false;
+  if (e.nodeEnv !== 'production') return true; // development: selalu boleh
+  return e.izinFlag === 'true'; // production: hanya dengan saklar demo
 }
 
 /**

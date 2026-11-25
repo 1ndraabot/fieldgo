@@ -4,6 +4,7 @@ import { ambilPengguna, type AuthDeps } from '../auth/service.ts';
 import { DEMO } from '../demo.ts';
 import { statusTampil } from '../riwayat/rules.ts';
 import { galatServer, json } from '../admin/http.ts';
+import { simulasiTestAktif } from './rules.ts';
 import { buatTransaksi, prosesNotifikasi, sinkronkanMilik, type GatewayDeps } from './service.ts';
 
 export type GatewayHandlerDeps = GatewayDeps & {
@@ -130,8 +131,14 @@ export function buatHandlersGateway(d: GatewayHandlerDeps) {
      */
     simulasiTest: async (req: Request, kode: string) => {
       try {
-        // Di produksi endpoint ini seolah tidak ada.
-        if (process.env.NODE_ENV === 'production') return json(404, { ok: false, kode: 'TIDAK_DITEMUKAN' });
+        // Di produksi endpoint ini seolah tidak ada, kecuali saklar demo dinyalakan
+        // (GATEWAY_SIMULASI_TEST="true" dengan kunci test Xendit).
+        if (!simulasiTestAktif({
+          provider: d.gateway.nama,
+          secretKey: process.env.XENDIT_SECRET_KEY,
+          nodeEnv: process.env.NODE_ENV,
+          izinFlag: process.env.GATEWAY_SIMULASI_TEST,
+        })) return json(404, { ok: false, kode: 'TIDAK_DITEMUKAN' });
         if (DEMO) return json(503, { ok: false, kode: 'MODE_DEMO' });
         if (!jsonWajib(req)) return json(415, { ok: false, kode: 'MEDIA_TIDAK_DIDUKUNG' });
         const p = await penggunaDari(req);

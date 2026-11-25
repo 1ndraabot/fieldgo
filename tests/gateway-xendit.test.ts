@@ -554,11 +554,17 @@ test('pilihGateway: production default xendit, fake hanya non-production', () =>
 
 // ─── Simulasi pembayaran (test mode) ────────────────────────────────────────
 
-test('simulasiTestAktif: hanya xendit + kunci development + non-production', () => {
+test('simulasiTestAktif: kunci test + non-production selalu; production hanya dengan saklar', () => {
   const e = { provider: 'xendit', secretKey: 'xnd_development_abc', nodeEnv: 'development' };
   assert.equal(simulasiTestAktif(e), true);
+  // Production terkunci tanpa saklar; hanya nilai persis "true" yang membuka.
   assert.equal(simulasiTestAktif({ ...e, nodeEnv: 'production' }), false);
-  assert.equal(simulasiTestAktif({ ...e, secretKey: 'xnd_production_abc' }), false);
+  assert.equal(simulasiTestAktif({ ...e, nodeEnv: 'production', izinFlag: 'true' }), true);
+  assert.equal(simulasiTestAktif({ ...e, nodeEnv: 'production', izinFlag: 'True' }), false);
+  assert.equal(simulasiTestAktif({ ...e, nodeEnv: 'production', izinFlag: '1' }), false);
+  // Kunci live tetap ditolak walau saklar aktif — tidak ada simulasi di pembayaran sungguhan.
+  assert.equal(simulasiTestAktif({ ...e, nodeEnv: 'production', secretKey: 'xnd_production_abc', izinFlag: 'true' }), false);
+  assert.equal(simulasiTestAktif({ ...e, nodeEnv: 'development', secretKey: 'xnd_production_abc', izinFlag: 'true' }), false);
   assert.equal(simulasiTestAktif({ ...e, secretKey: undefined }), false);
   assert.equal(simulasiTestAktif({ ...e, provider: 'fake' }), false);
 });
@@ -587,29 +593,41 @@ test('simulasikanPembayaran: PR 404, HTTP error, dan invoice lama ditolak', asyn
   assert.deepEqual(await invoice.simulasikanPembayaran!('FGO-X1', 'inv-9', 1), { ok: false, kode: 'BUKAN_PAYMENT_REQUEST' });
 });
 
-test('simulasikanPembayaran: kunci live dan production ditolak tanpa memanggil API', async () => {
-  const panggilan: Panggilan[] = [];
-  const live = buatXenditGateway({
-    secretKey: 'xnd_production_uji',
-    callbackToken: TOKEN,
-    apiBase: 'https://api.xendit.test',
-    fetchImpl: async (input, init = {}) => {
-      panggilan.push({ url: String(input), init });
-      return respon({});
-    },
-  });
-  assert.deepEqual(await live.simulasikanPembayaran!('FGO-X1', 'pr-abc-1', 1), { ok: false, kode: 'HANYA_TEST' });
-  assert.equal(panggilan.length, 0);
-
+test('simulasikanPembayaran: production terkunci kecuali saklar demo; kunci live selalu ditolak', async () => {
   const NODE_ENV: string = 'NODE_ENV';
-  const lama = process.env[NODE_ENV];
-  process.env[NODE_ENV] = 'production';
+  const SAKLAR: string = 'GATEWAY_SIMULASI_TEST';
+  const lama = { node: process.env[NODE_ENV], saklar: process.env[SAKLAR] };
   try {
-    const { gateway, panggilan: p2 } = buat(); // kunci development, tetapi produksi
-    assert.deepEqual(await gateway.simulasikanPembayaran!('FGO-X1', 'pr-abc-1', 1), { ok: false, kode: 'HANYA_TEST' });
-    assert.equal(p2.length, 0);
+    process.env[NODE_ENV] = 'production';
+    delete process.env[SAKLAR];
+
+    const { gateway, panggilan } = buat(); // kunci development, production tanpa saklar
+    assert.deepEqual(await gateway.simulasikanPembayaran!('FGO-X1', 'pr-abc-1', 200_000), { ok: false, kode: 'HANYA_TEST' });
+    assert.equal(panggilan.length, 0);
+
+    process.env[SAKLAR] = 'true'; // saklar demo membuka jalur di production
+    const { gateway: dibuka, panggilan: p2 } = buat(() => respon({ status: 'PENDING', message: 'diproses' }));
+    assert.deepEqual(await dibuka.simulasikanPembayaran!('FGO-X1', 'pr-abc-1', 200_000), { ok: true });
+    assert.equal(p2.length, 1);
+    assert.equal(p2[0].url, 'https://api.xendit.test/v3/payment_requests/pr-abc-1/simulate');
+
+    process.env[NODE_ENV] = 'development'; // kunci live ditolak di env mana pun
+    const panggilanLive: Panggilan[] = [];
+    const live = buatXenditGateway({
+      secretKey: 'xnd_production_uji',
+      callbackToken: TOKEN,
+      apiBase: 'https://api.xendit.test',
+      fetchImpl: async (input, init = {}) => {
+        panggilanLive.push({ url: String(input), init });
+        return respon({});
+      },
+    });
+    assert.deepEqual(await live.simulasikanPembayaran!('FGO-X1', 'pr-abc-1', 1), { ok: false, kode: 'HANYA_TEST' });
+    assert.equal(panggilanLive.length, 0);
   } finally {
-    if (lama === undefined) delete process.env[NODE_ENV];
-    else process.env[NODE_ENV] = lama;
+    if (lama.node === undefined) delete process.env[NODE_ENV];
+    else process.env[NODE_ENV] = lama.node;
+    if (lama.saklar === undefined) delete process.env[SAKLAR];
+    else process.env[SAKLAR] = lama.saklar;
   }
 });

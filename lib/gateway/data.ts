@@ -65,6 +65,7 @@ export async function getHalamanBayarGateway(kode: string, penggunaId: number): 
       provider: (process.env.GATEWAY_PROVIDER ?? 'xendit').toLowerCase(),
       secretKey: process.env.XENDIT_SECRET_KEY,
       nodeEnv: process.env.NODE_ENV,
+      izinFlag: process.env.GATEWAY_SIMULASI_TEST,
     }),
     gatewayAktif,
   };

@@ -1,7 +1,7 @@
 import { kanalDari } from './kanal.ts';
 import {
   durasiInvoiceDetik, petakanMetodeXendit, petakanStatusPaymentRequest, petakanStatusRefundXendit,
-  petakanStatusXendit, samakanAmanWaktu,
+  petakanStatusXendit, samakanAmanWaktu, simulasiTestAktif,
 } from './rules.ts';
 import type {
   BuatTransaksiInput, GatewayProvider, HasilRefundGateway, InstruksiPembayaran, NotifikasiGateway,
@@ -479,13 +479,20 @@ export function buatXenditGateway(o: OpsiXendit = {}): GatewayProvider {
 
     /**
      * [Hanya test mode] Endpoint simulasi resmi Xendit (docs: "Simulate payment [test mode]").
-     * Dipagari tiga lapis: bukan production, kunci development, dan transaksi v3 (`pr-…`).
+     * Dipagari gerbang simulasiTestAktif: kunci development, dan di production wajib
+     * saklar demo (GATEWAY_SIMULASI_TEST="true"); hanya transaksi v3 (`pr-…`).
      * Respons 200 berarti simulasi sedang diproses di sisi Xendit; status akhir dibaca
      * ulang lewat ambilStatus (poller sinkron) atau webhook payment.capture.
      */
     async simulasikanPembayaran(_orderId: string, providerRef: string, jumlah: number) {
-      if (process.env.NODE_ENV === 'production') return { ok: false as const, kode: 'HANYA_TEST' };
-      if (!kunci().startsWith('xnd_development_')) return { ok: false as const, kode: 'HANYA_TEST' };
+      // Gerbang yang sama dengan UI/handler: kunci test, dan di production wajib saklar demo.
+      const aktif = simulasiTestAktif({
+        provider: 'xendit',
+        secretKey: kunci(),
+        nodeEnv: process.env.NODE_ENV,
+        izinFlag: process.env.GATEWAY_SIMULASI_TEST,
+      });
+      if (!aktif) return { ok: false as const, kode: 'HANYA_TEST' };
       if (!providerRef.startsWith('pr-')) return { ok: false as const, kode: 'BUKAN_PAYMENT_REQUEST' };
 
       const res = await permintaan(`/v3/payment_requests/${encodeURIComponent(providerRef)}/simulate`, {
