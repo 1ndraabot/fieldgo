@@ -11,7 +11,7 @@ export function RekapView({ periodeLabel, baris }: { periodeLabel: string; baris
 
   return (
     <AdminShell aktif="Rekap" judul="Rekap pesanan"
-      keterangan="Ringkasan pesanan dan pendapatan per lapangan. Angka di sini dihitung ulang saat halaman dibuka (PRD 8.7)."
+      keterangan="Ringkasan pesanan dan pendapatan per lapangan. Angka di sini dihitung ulang saat halaman dibuka."
       aksi={<EksporCsvButton periodeLabel={periodeLabel} baris={baris} />}>
       <p className="text-[15px] font-bold text-muted">Periode: {periodeLabel}</p>
 
@@ -46,7 +46,7 @@ export function RekapView({ periodeLabel, baris }: { periodeLabel: string; baris
       </div>
       <Catatan>
         Lapangan dengan pendapatan tertinggi: <strong>{terlaris.lapangan}</strong> ({formatRupiah(terlaris.pendapatan)}).
-        Pesanan yang dibatalkan tidak dihitung; hanya pesanan terkonfirmasi dan selesai (BR-13 konsisten).
+        Pesanan yang dibatalkan tidak dihitung; hanya pesanan terkonfirmasi dan selesai.
       </Catatan>
     </AdminShell>
   );

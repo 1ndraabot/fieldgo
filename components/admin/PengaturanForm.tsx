@@ -57,7 +57,7 @@ export default function PengaturanForm({ data }: { data: Pengaturan }) {
       setPesan({ nada: 'merah', teks: h.pesan ?? 'Pengaturan gagal disimpan.' });
       return;
     }
-    setPesan({ nada: 'teal', teks: 'Pengaturan tersimpan. Berlaku untuk pesanan baru; pesanan lama tidak berubah (BR-06).' });
+    setPesan({ nada: 'teal', teks: 'Pengaturan tersimpan. Berlaku untuk pesanan baru; pesanan lama tidak berubah.' });
     router.refresh();
   }
 
@@ -102,8 +102,8 @@ export default function PengaturanForm({ data }: { data: Pengaturan }) {
           </Field>
         </div>
         <p className="m-0 text-[13px] leading-relaxed text-muted">
-          Batas bayar dihitung dari pesanan dibuat dan tidak pernah melewati jam mulai main (BR-07). Batas pembatalan
-          menentukan paling lambat H-berapa penyewa boleh mengajukan pembatalan (BR-12).
+          Batas bayar dihitung dari pesanan dibuat dan tidak pernah melewati jam mulai main. Batas pembatalan
+          menentukan paling lambat H-berapa penyewa boleh mengajukan pembatalan.
         </p>
       </fieldset>
 

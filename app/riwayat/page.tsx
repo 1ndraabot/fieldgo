@@ -8,8 +8,7 @@ export const metadata: Metadata = { title: 'FieldGo — Riwayat' };
 export const dynamic = 'force-dynamic'; // status pesanan harus selalu terbaru
 
 const SAH: StatusPesanan[] = [
-  'menunggu_pembayaran', 'menunggu_verifikasi', 'terkonfirmasi', 'pengajuan_pembatalan',
-  'selesai', 'dibatalkan', 'ditolak', 'kedaluwarsa',
+  'menunggu_pembayaran', 'terkonfirmasi', 'pengajuan_pembatalan', 'dibatalkan', 'kedaluwarsa',
 ];
 
 export default async function Riwayat({ searchParams }: { searchParams: Promise<{ status?: string | string[] }> }) {

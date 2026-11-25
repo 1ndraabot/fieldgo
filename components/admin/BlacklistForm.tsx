@@ -104,7 +104,7 @@ export default function BlacklistForm({ daftarLapangan }: {
     return (
       <div className="flex flex-col gap-4">
         <Banner nada="amber" ikon="alert">
-          {bentrok.length} pesanan aktif sudah memakai slot ini. Pesanan tersebut <b>tidak akan dibatalkan</b> (BR-14);
+          {bentrok.length} pesanan aktif sudah memakai slot ini. Pesanan tersebut <b>tidak akan dibatalkan</b>;
           blokir hanya menolak pemesanan baru.
         </Banner>
         <ul className="m-0 flex list-none flex-col gap-2 rounded-[18px] bg-white p-4 text-[13px] font-semibold">

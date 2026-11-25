@@ -59,13 +59,13 @@ export function BatalForm({ kode, lapanganNama, jadwalLabel, total, nama, kontak
     return (
       <div className="flex flex-col gap-5">
         <Banner nada="teal" ikon="check" role="status">
-          Pengajuan pembatalan untuk <strong>{kode}</strong> terkirim. Status pesanan menjadi <strong>Pengajuan pembatalan</strong>; slot tetap terisi sampai admin memutuskan (FR-CAN-03).
+          Pengajuan pembatalan untuk <strong>{kode}</strong> terkirim. Status pesanan menjadi <strong>Pengajuan pembatalan</strong>.
         </Banner>
         <Link href={`/riwayat/${encodeURIComponent(kode)}`}
           className="btn flex h-14 items-center justify-center rounded-full bg-brand px-7 text-base font-bold text-white no-underline">
           Lihat detail pesanan
         </Link>
-        <p className="text-center text-[13px] font-medium text-muted">Keputusan dan nominal refund ditetapkan admin (BR-13).</p>
+        <p className="text-center text-[13px] font-medium text-muted">Keputusan dan nominal refund ditetapkan admin.</p>
       </div>
     );
   }
@@ -108,7 +108,7 @@ export function BatalForm({ kode, lapanganNama, jadwalLabel, total, nama, kontak
           <TeksInput id="atasNama" value={atasNama} onChange={(v) => { setAtasNama(v); setGalat({}); }}
             autoComplete="name" placeholder="Nama pemilik rekening" galat={galat.atasNama} />
         </Field>
-        <p className="text-[13px] text-muted">Kebijakan refund belum baku: nominal diputuskan dan dicatat admin (BR-13).</p>
+        <p className="text-[13px] text-muted">Kebijakan refund belum baku: nominal diputuskan dan dicatat admin.</p>
       </fieldset>
 
       <TombolUtama disabled={kirim}>{kirim ? 'Mengirim…' : 'Kirim pengajuan pembatalan'}</TombolUtama>

@@ -42,7 +42,7 @@ export function BlacklistView({ daftarLapangan, baris }: {
 
   return (
     <AdminShell aktif="Blacklist" judul="Blacklist jadwal"
-      keterangan="Blokir slot untuk perbaikan atau acara internal. Slot terblokir tidak dapat dipesan dan tampil Terisi pada kalender penyewa (PRD 8.3).">
+      keterangan="Blokir slot untuk perbaikan atau acara internal. Slot terblokir tidak dapat dipesan dan tampil Terisi pada kalender penyewa.">
       <div className="grid gap-8 xl:grid-cols-[1fr_400px]">
         <div>
           {pesan && <div className="mb-4"><Banner nada={pesan.nada} ikon={pesan.nada === 'teal' ? 'check' : 'alert'} role="status">{pesan.teks}</Banner></div>}
@@ -92,7 +92,7 @@ export function BlacklistView({ daftarLapangan, baris }: {
             ))}
           </Tabel>
           <Catatan>
-            Blokir tidak membatalkan pesanan yang sudah ada (BR-14). Pesanan terdampak tetap diproses dan slotnya tetap
+            Blokir tidak membatalkan pesanan yang sudah ada. Pesanan terdampak tetap diproses dan slotnya tetap
             tampil Terisi sampai selesai; blokir hanya menolak pemesanan baru pada rentang tersebut.
           </Catatan>
         </div>
@@ -101,7 +101,7 @@ export function BlacklistView({ daftarLapangan, baris }: {
           <h2 className="font-display text-xl font-bold">Tambah blokir</h2>
           <p className="mt-1.5 text-[13px] leading-relaxed text-muted">
             Jika blokir menimpa pesanan aktif, sistem meminta konfirmasi. Pesanan tersebut tetap berjalan dan tidak
-            dibatalkan (BR-14).
+            dibatalkan.
           </p>
           <div className="mt-5">
             <BlacklistForm daftarLapangan={daftarLapangan} />

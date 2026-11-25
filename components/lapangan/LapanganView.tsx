@@ -121,7 +121,7 @@ export function LapanganView({ data, slot, tanggal, hariIni, pengguna }: {
                 ))}
               </tbody>
             </table>
-            <p className="mt-4 text-sm text-muted">Harga dikunci saat pesanan dibuat; perubahan tarif kemudian tidak memengaruhi pesanan lama (BR-06).</p>
+            <p className="mt-4 text-sm text-muted">Harga dikunci saat pesanan dibuat; perubahan tarif kemudian tidak memengaruhi pesanan lama.</p>
           </div>
         </section>
 

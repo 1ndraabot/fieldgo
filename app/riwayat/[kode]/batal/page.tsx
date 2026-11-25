@@ -34,8 +34,7 @@ export default async function HalamanBatal({ params }: { params: Promise<{ kode:
             Ajukan <span className="text-brand-2">pembatalan</span>
           </h1>
           <p className="mt-3 text-[15px] leading-relaxed text-muted">
-            Pengajuan hanya untuk pesanan Terkonfirmasi sebelum batas pembatalan. Setelah dikirim, slot tetap terisi
-            sampai admin memutuskan (FR-CAN-03).
+            Pengajuan hanya untuk pesanan Terkonfirmasi sebelum batas pembatalan.
           </p>
           <div className="mt-7">
             <BatalForm kode={data.kode} lapanganNama={data.lapanganNama}

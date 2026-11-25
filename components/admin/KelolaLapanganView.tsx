@@ -117,7 +117,7 @@ export function KelolaLapanganView({ daftar, detail, master }: {
 
   return (
     <AdminShell aktif="Lapangan" judul="Kelola lapangan"
-      keterangan="Tambah, ubah, dan nonaktifkan lapangan. Lapangan dinonaktifkan, bukan dihapus, agar riwayat dan rekap tetap utuh (BR-17).">
+      keterangan="Tambah, ubah, dan nonaktifkan lapangan. Lapangan dinonaktifkan, bukan dihapus, agar riwayat dan rekap tetap utuh.">
       {pesan && <div className="mb-5"><Banner nada={pesan.nada} ikon={pesan.nada === 'teal' ? 'check' : 'alert'} role="status">{pesan.teks}</Banner></div>}
 
       {form ? (
@@ -235,7 +235,7 @@ export function KelolaLapanganView({ daftar, detail, master }: {
       </Tabel>
 
       <Catatan>
-        Menonaktifkan lapangan tidak membatalkan pesanan aktifnya (BR-18); pesanan berjalan tetap diproses sampai selesai.
+        Menonaktifkan lapangan tidak membatalkan pesanan aktifnya; pesanan berjalan tetap diproses sampai selesai.
       </Catatan>
 
       <div className="mt-8 grid gap-5 lg:grid-cols-2">

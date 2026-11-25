@@ -47,7 +47,7 @@ export function KelolaTarifView({ daftar, aktifId, lapanganNama, aturan, jam }: 
 
   return (
     <AdminShell aktif="Tarif" judul="Kelola tarif"
-      keterangan="Harga per jam berdasarkan tipe hari (hari kerja / akhir pekan) dan rentang jam. Rentang tidak boleh tumpang tindih dan seluruh jam operasional harus tertutup tarif (FR-ADM-03).">
+      keterangan="Harga per jam berdasarkan tipe hari (hari kerja / akhir pekan) dan rentang jam. Rentang tidak boleh tumpang tindih dan seluruh jam operasional harus tertutup tarif.">
       <PilihLapangan daftar={daftar} aktifId={aktifId} basis="/admin/tarif" />
 
       <div className="mt-6">
@@ -61,7 +61,7 @@ export function KelolaTarifView({ daftar, aktifId, lapanganNama, aturan, jam }: 
         ) : hilang.length > 0 ? (
           <Banner nada="amber" ikon="alert">
             {hilang.length} jam belum ditutup tarif ({hilang.slice(0, 4).map((h) => `${formatJam(h.jam)} (${h.tipeHari})`).join(', ')}
-            {hilang.length > 4 ? ' …' : ''}). Jam tanpa tarif tidak boleh dibuka untuk dipesan (BR-15) dan tampil Tidak tersedia (AC-20).
+            {hilang.length > 4 ? ' …' : ''}). Jam tanpa tarif tidak boleh dibuka untuk dipesan dan tampil Tidak tersedia.
           </Banner>
         ) : (
           <Banner nada="teal" ikon="check" role="status">Seluruh jam operasional {lapanganNama} sudah tertutup tarif.</Banner>
@@ -120,7 +120,7 @@ export function KelolaTarifView({ daftar, aktifId, lapanganNama, aturan, jam }: 
       </div>
 
       <Catatan>
-        Perubahan tarif <strong>tidak memengaruhi pesanan yang sudah dibuat</strong> — harga dikunci saat pesanan dibuat (BR-06).
+        Perubahan tarif <strong>tidak memengaruhi pesanan yang sudah dibuat</strong> — harga dikunci saat pesanan dibuat.
       </Catatan>
     </AdminShell>
   );

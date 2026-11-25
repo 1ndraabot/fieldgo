@@ -125,9 +125,9 @@ export function PembatalanTabel({ baris }: { baris: BarisBatal[] }) {
         </Tabel>
       )}
       <Catatan>
-        Selama pengajuan diproses slot tetap terisi (FR-CAN-03). Menyetujui mengubah status menjadi <strong>Dibatalkan</strong>,
+        Selama pengajuan diproses slot tetap terisi. Menyetujui mengubah status menjadi <strong>Dibatalkan</strong>,
         melepas slot, dan membuat refund (gateway bila pembayaran lewat gateway, manual bila tidak). Menolak mengembalikan
-        status ke <strong>Terkonfirmasi</strong> dan wajib disertai catatan (FR-CAN-04).
+        status ke <strong>Terkonfirmasi</strong> dan wajib disertai catatan.
       </Catatan>
     </div>
   );

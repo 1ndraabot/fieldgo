@@ -31,7 +31,7 @@ export function DaftarPesananView({ data, q, status }: { data: DaftarPesananAdmi
 
   return (
     <AdminShell aktif="Pesanan" judul="Daftar pesanan"
-      keterangan="Seluruh pesanan dari semua penyewa. Gunakan pencarian dan filter status untuk menelusuri (PRD 8.6).">
+      keterangan="Seluruh pesanan dari semua penyewa. Gunakan pencarian dan filter status untuk menelusuri.">
       {/* Pencarian server-side: submit form GET ke /admin/pesanan?q=… */}
       <form role="search" aria-label="Cari pesanan" action="/admin/pesanan" method="get" className="flex flex-wrap items-center gap-2.5">
         <input type="search" name="q" defaultValue={q} placeholder="Cari kode, penyewa, atau lapangan…"
@@ -97,7 +97,7 @@ export function DaftarPesananView({ data, q, status }: { data: DaftarPesananAdmi
 
       <Catatan>
         {data.total} pesanan cocok dengan filter; {data.baris.length} ditampilkan pada halaman {data.halaman}.
-        Harga dikunci per pesanan (BR-06); perubahan tarif tidak mengubah total di sini.
+        Harga dikunci per pesanan; perubahan tarif tidak mengubah total di sini.
       </Catatan>
     </AdminShell>
   );

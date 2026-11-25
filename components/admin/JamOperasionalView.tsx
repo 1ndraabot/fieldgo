@@ -52,7 +52,7 @@ export function JamOperasionalView({ daftar, aktifId, lapanganNama, baris: awal,
 
   return (
     <AdminShell aktif="Jam operasional" judul="Jam operasional"
-      keterangan={`Atur jam buka dan tutup tiap hari untuk ${lapanganNama}. Jam di luar rentang ini otomatis tampil Tidak tersedia (PRD 8.2).`}>
+      keterangan={`Atur jam buka dan tutup tiap hari untuk ${lapanganNama}. Jam di luar rentang ini otomatis tampil Tidak tersedia.`}>
       <PilihLapangan daftar={daftar} aktifId={aktifId} basis="/admin/jam-operasional" />
 
       <div className="mt-6">
@@ -111,8 +111,8 @@ export function JamOperasionalView({ daftar, aktifId, lapanganNama, baris: awal,
       </div>
 
       <Catatan>
-        Slot yang dibuka harus tertutup tarif (BR-15). Jam di luar jam operasional dan hari Tutup tidak dapat dipesan dan tampil
-        <strong> Tidak tersedia</strong> pada kalender penyewa (AC-20).
+        Slot yang dibuka harus tertutup tarif. Jam di luar jam operasional dan hari Tutup tidak dapat dipesan dan tampil
+        <strong> Tidak tersedia</strong> pada kalender penyewa.
       </Catatan>
     </AdminShell>
   );

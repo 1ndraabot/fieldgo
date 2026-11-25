@@ -57,7 +57,7 @@ export function PenggunaView({ daftar, aktorId }: { daftar: BarisPengguna[]; akt
 
   return (
     <AdminShell aktif="Pengguna" judul="Pengguna"
-      keterangan="Daftar semua pengguna terdaftar. Menonaktifkan pengguna mencegah pesanan baru tanpa menghapus data (PRD 8.8).">
+      keterangan="Daftar semua pengguna terdaftar. Menonaktifkan pengguna mencegah pesanan baru tanpa menghapus data.">
       {pesan && <div className="mb-4"><Banner nada={pesan.nada} ikon={pesan.nada === 'teal' ? 'check' : 'alert'} role="status">{pesan.teks}</Banner></div>}
 
       {target && (
@@ -68,7 +68,7 @@ export function PenggunaView({ daftar, aktorId }: { daftar: BarisPengguna[]; akt
           <p className="m-0 text-[13px] leading-relaxed text-muted">
             {target.aktif
               ? 'Pengguna dapat masuk dan membuat pesanan baru lagi.'
-              : 'Pengguna tidak dapat masuk atau membuat pesanan baru. Riwayat dan pesanan yang sedang berjalan tetap diproses (PRD 8.8).'}
+              : 'Pengguna tidak dapat masuk atau membuat pesanan baru. Riwayat dan pesanan yang sedang berjalan tetap diproses.'}
           </p>
           <div className="flex flex-wrap gap-2.5">
             <button type="button" onClick={ubah} disabled={kirim}

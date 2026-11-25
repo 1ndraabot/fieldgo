@@ -9,14 +9,12 @@ import { formatRupiah, labelPanjang } from '@/lib/format';
 import type { StatusPesanan } from '@/lib/slots';
 
 const pad = 'px-[clamp(16px,4.5vw,64px)]';
-const FILTER: (StatusPesanan | 'semua')[] = [
-  'semua', 'menunggu_pembayaran', 'menunggu_verifikasi', 'terkonfirmasi', 'pengajuan_pembatalan',
-  'selesai', 'dibatalkan', 'ditolak', 'kedaluwarsa',
-];
+const FILTER = [
+  'semua', 'menunggu_pembayaran', 'terkonfirmasi', 'pengajuan_pembatalan', 'dibatalkan', 'kedaluwarsa',
+] as const satisfies readonly (StatusPesanan | 'semua')[];
 const LABEL: Record<(typeof FILTER)[number], string> = {
-  semua: 'Semua', menunggu_pembayaran: 'Menunggu bayar', menunggu_verifikasi: 'Menunggu verifikasi',
-  terkonfirmasi: 'Terkonfirmasi', pengajuan_pembatalan: 'Pengajuan batal', selesai: 'Selesai',
-  dibatalkan: 'Dibatalkan', ditolak: 'Ditolak', kedaluwarsa: 'Kedaluwarsa',
+  semua: 'Semua', menunggu_pembayaran: 'Menunggu bayar', terkonfirmasi: 'Terkonfirmasi',
+  pengajuan_pembatalan: 'Pengajuan batal', dibatalkan: 'Dibatalkan', kedaluwarsa: 'Kedaluwarsa',
 };
 
 /** Riwayat seluruh pesanan milik penyewa, terbaru dulu, dengan filter status (FR-HIS-02). */

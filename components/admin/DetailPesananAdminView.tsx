@@ -49,7 +49,7 @@ export function DetailPesananAdminView({ pesanan: p }: { pesanan: DetailPesananA
             <dd className="mt-1 font-display text-lg font-bold">{p.lapanganNama}</dd></div>
           <div><dt className="text-[13px] font-bold uppercase tracking-wider text-muted">Jadwal main</dt>
             <dd className="mt-1 font-semibold">{labelPanjang(p.tanggal)} · {rentang}</dd></div>
-          <div><dt className="text-[13px] font-bold uppercase tracking-wider text-muted">Total (terkunci — BR-06)</dt>
+          <div><dt className="text-[13px] font-bold uppercase tracking-wider text-muted">Total (terkunci)</dt>
             <dd className="mt-1 font-display text-lg font-bold text-brand">{formatRupiah(p.totalHarga)}</dd></div>
           <div><dt className="text-[13px] font-bold uppercase tracking-wider text-muted">Dibuat</dt>
             <dd className="mt-1 text-muted">{labelDibuat(p.dibuatPada)}</dd></div>
@@ -59,7 +59,7 @@ export function DetailPesananAdminView({ pesanan: p }: { pesanan: DetailPesananA
           )}
         </dl>
         {p.status === 'ditolak' && p.alasanPenolakan && (
-          <div className="mt-5"><Banner nada="merah" ikon="alert">Bukti ditolak (final — BR-11): {p.alasanPenolakan}</Banner></div>
+          <div className="mt-5"><Banner nada="merah" ikon="alert">Bukti ditolak (final): {p.alasanPenolakan}</Banner></div>
         )}
       </section>
 

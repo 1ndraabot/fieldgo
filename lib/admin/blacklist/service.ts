@@ -94,7 +94,7 @@ export async function simpanBlokir(
   if (bentrok.length && !abaikanBentrok) {
     return gagal(
       'KONFLIK',
-      `${bentrok.length} pesanan aktif memakai slot ini. Pesanan tersebut tidak akan dibatalkan (BR-14); konfirmasi untuk tetap membuat blokir.`,
+      `${bentrok.length} pesanan aktif memakai slot ini. Pesanan tersebut tidak akan dibatalkan; konfirmasi untuk tetap membuat blokir.`,
       bentrok,
     );
   }

@@ -6,7 +6,7 @@ import type { Pengaturan } from '@/lib/admin/pengaturan/data';
 export function PengaturanView({ data }: { data: Pengaturan }) {
   return (
     <AdminShell aktif="Pengaturan" judul="Pengaturan"
-      keterangan="Rekening tujuan pengembalian dana dan batas waktu global. Perubahan hanya memengaruhi pesanan yang dibuat setelahnya (BR-06).">
+      keterangan="Rekening tujuan pengembalian dana dan batas waktu global. Perubahan hanya memengaruhi pesanan yang dibuat setelahnya.">
       <div className="max-w-[720px] rounded-[28px] border-[1.5px] border-line bg-white p-7">
         <PengaturanForm data={data} />
       </div>
