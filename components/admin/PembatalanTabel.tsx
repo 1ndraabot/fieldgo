@@ -5,10 +5,16 @@ import { useState } from 'react';
 import { Catatan, Tabel, Td } from '@/components/admin/ui';
 import { Banner } from '@/components/auth/ui';
 import type { BarisBatal } from '@/lib/admin/pengecualian/data';
+import { CATATAN_TOLAK_DEFAULT } from '@/lib/admin/pengecualian/rules';
 import { formatRupiah, labelDibuat, labelPanjang } from '@/lib/format';
 import { kirimApi } from './api';
 
 type Panel = { baris: BarisBatal; aksi: 'setujui' | 'tolak'; catatan: string; nominal: string } | null;
+
+/** Sapaan hangat yang terisi otomatis saat panel keputusan dibuka; admin tetap bisa mengubahnya. */
+const catatanHangat = (nama: string) =>
+  `Terima kasih sudah bermain di FieldGo, Kak ${nama}! Kami senang kamu memilih lapangan kami. ` +
+  'Semoga bisa bermain lagi di lain waktu, ya. Sampai jumpa!';
 
 /** Antrean pengajuan pembatalan penyewa (FR-ADM-07, BR-13): setujui → refund, tolak → kembali Terkonfirmasi. */
 export function PembatalanTabel({ baris }: { baris: BarisBatal[] }) {
@@ -19,7 +25,7 @@ export function PembatalanTabel({ baris }: { baris: BarisBatal[] }) {
 
   function buka(b: BarisBatal, aksi: 'setujui' | 'tolak') {
     setPesan(null);
-    setPanel({ baris: b, aksi, catatan: '', nominal: String(b.totalHarga) });
+    setPanel({ baris: b, aksi, catatan: catatanHangat(b.penyewa), nominal: String(b.totalHarga) });
   }
 
   async function putuskan() {
@@ -27,9 +33,11 @@ export function PembatalanTabel({ baris }: { baris: BarisBatal[] }) {
     setKirim(true);
     setPesan(null);
     const nominal = Number.parseInt(panel.nominal, 10);
+    // Tolak dengan catatan kosong memakai alasan formal otomatis (server juga memakai fallback yang sama).
+    const catatan = panel.aksi === 'tolak' && panel.catatan.trim() === '' ? CATATAN_TOLAK_DEFAULT : panel.catatan;
     const h = await kirimApi(`/api/admin/verifikasi/batal/${panel.baris.kode}`, 'POST', {
       aksi: panel.aksi,
-      catatan: panel.catatan,
+      catatan,
       nominalRefund: panel.aksi === 'setujui' && Number.isInteger(nominal) && nominal > 0 ? nominal : undefined,
     });
     setKirim(false);

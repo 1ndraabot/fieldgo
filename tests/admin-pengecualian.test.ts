@@ -2,7 +2,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import './helpers/env.ts'; // WAJIB paling atas: isi DATABASE_URL sebelum modul demo.ts membacanya.
 import {
-  bolehTerima, labelHasilSinkron, validasiPutusanBatal, validasiRefundBaru, validasiSelesaikan, validasiTinjau,
+  bolehTerima, CATATAN_TOLAK_DEFAULT, labelHasilSinkron, validasiPutusanBatal, validasiRefundBaru,
+  validasiSelesaikan, validasiTinjau,
 } from '../lib/admin/pengecualian/rules.ts';
 import {
   buatRefund, putuskanPembatalan, selesaikanRefundManual, sinkronkan, tinjauPembayaran,
@@ -381,6 +382,16 @@ test('putuskanPembatalan: tolak wajib catatan; sukses mengembalikan pesanan ke T
 
   const lagi = await putuskanPembatalan(deps, { kode: 'FGO-UJI01', aksi: 'tolak', catatan: 'Mencoba memutus sekali lagi.', nominalRefund: null, adminId: ADMIN_ID });
   assert.ok(!lagi.ok && lagi.kode === 'STATUS_BERUBAH');
+});
+
+test('putuskanPembatalan: tolak dengan catatan kosong memakai catatan otomatis', async () => {
+  const { deps, keadaan } = buatDeps();
+  keadaan.adaPengajuan = true;
+  keadaan.status = 'pengajuan_pembatalan';
+
+  const h = await putuskanPembatalan(deps, { kode: 'FGO-UJI01', aksi: 'tolak', catatan: '   ', nominalRefund: null, adminId: ADMIN_ID });
+  assert.equal(h.ok, true);
+  assert.equal(keadaan.riwayat[keadaan.riwayat.length - 1]?.catatan, CATATAN_TOLAK_DEFAULT);
 });
 
 test('putuskanPembatalan: setujui → pesanan dibatalkan + refund gateway dibuat dan diproses', async () => {

@@ -104,7 +104,7 @@ export function MasukForm({ next, peranAwal = 'penyewa' }: { next: string; peran
         ) : (
           <>
             <Judul kata="Masuk" hijau="admin">Panel pengelola lapangan. Bukan akun admin? Beralih ke Penyewa.</Judul>
-            <p className="-mt-2 text-sm text-muted">Suka tampilan gelap? <Link href={`/admin/masuk${tujuanAdmin === '/admin/lapangan' ? '' : `?next=${encodeURIComponent(tujuanAdmin)}`}`} className="font-bold text-[#0A6B3A]">Masuk lewat halaman admin</Link>.</p>
+            <p className="-mt-2 text-sm text-muted">Punya akses admin? <Link href={`/admin/masuk${tujuanAdmin === '/admin/lapangan' ? '' : `?next=${encodeURIComponent(tujuanAdmin)}`}`} className="font-bold text-[#0A6B3A]">Masuk lewat halaman admin</Link>.</p>
           </>
         )}
       </div>
@@ -119,6 +119,9 @@ export function MasukForm({ next, peranAwal = 'penyewa' }: { next: string; peran
         <Field id="kataSandi" label="Kata sandi" galat={galat.kataSandi}>
           <PasswordInput id="kataSandi" value={sandi} onChange={setSandi} autoComplete="current-password" galat={galat.kataSandi} />
         </Field>
+        <div className="-mt-2 text-right">
+          <Link href="/lupa-sandi" className="text-sm font-bold text-[#0A6B3A]">Lupa kata sandi?</Link>
+        </div>
         <TombolUtama disabled={kirim || tunggu > 0}>{kirim ? 'Memproses…' : peran === 'admin' ? 'Masuk sebagai admin' : 'Masuk'}</TombolUtama>
       </form>
     </>

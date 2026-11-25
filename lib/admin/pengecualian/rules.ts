@@ -9,6 +9,11 @@ export const CATATAN_MAKS = 500;
 export const CATATAN_SELESAI_MIN = 3;
 export const REFUND_MAKS = 100_000_000;
 
+/** Catatan penolakan otomatis bila admin mengosongkan kolom. */
+export const CATATAN_TOLAK_DEFAULT =
+  'Maaf, permintaan tidak dapat dilakukan karena bertentangan dengan ketentuan. ' +
+  'Silakan hubungi call center yang ada. Terima kasih.';
+
 const teks = (v: unknown): string => (typeof v === 'string' ? v.trim() : '');
 
 /** Aksi tinjau pembayaran bermasalah. Catatan wajib hanya untuk refund (alasan refund). */

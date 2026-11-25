@@ -2,7 +2,7 @@ import { DEMO } from '../../demo.ts';
 import { prosesNotifikasi, type GatewayStore, type HasilNotifikasi } from '../../gateway/service.ts';
 import type { GatewayProvider } from '../../gateway/types.ts';
 import {
-  bolehTerima, validasiPutusanBatal, validasiRefundBaru, validasiSelesaikan, validasiTinjau,
+  bolehTerima, CATATAN_TOLAK_DEFAULT, validasiPutusanBatal, validasiRefundBaru, validasiSelesaikan, validasiTinjau,
   type AksiBatal, type AksiTinjau, type CaraRefund,
 } from './rules.ts';
 
@@ -177,19 +177,21 @@ export async function putuskanPembatalan(
   i: { kode: string; aksi: AksiBatal; catatan: string; nominalRefund: number | null; adminId: number },
 ): Promise<HasilPengecualian<{ refundId?: number }>> {
   if (DEMO) return gagal('MODE_DEMO', 'Mode demo tanpa basis data: putusan pembatalan tidak dapat disimpan.');
-  const galat = validasiPutusanBatal(i.aksi, i.catatan, i.nominalRefund);
+  // Penolakan dengan catatan kosong tetap punya alasan yang tampil ke penyewa.
+  const catatan = i.aksi === 'tolak' && i.catatan.trim() === '' ? CATATAN_TOLAK_DEFAULT : i.catatan;
+  const galat = validasiPutusanBatal(i.aksi, catatan, i.nominalRefund);
   if (galat) return gagal('VALIDASI', galat);
 
   const now = d.sekarang();
   if (i.aksi === 'tolak') {
-    const r = await d.store.putuskanBatalTolak({ kode: i.kode, catatan: i.catatan, adminId: i.adminId, now });
+    const r = await d.store.putuskanBatalTolak({ kode: i.kode, catatan, adminId: i.adminId, now });
     if (r === 'TIDAK_DITEMUKAN') return gagal('TIDAK_DITEMUKAN', 'Pengajuan pembatalan tidak ditemukan atau sudah diputuskan.');
     if (r === 'STATUS_BERUBAH') return gagal('STATUS_BERUBAH', 'Status pesanan sudah berubah; muat ulang halaman.');
     return { ok: true, data: {} };
   }
 
   const klaim = await d.store.putuskanBatalSetujui({
-    kode: i.kode, catatan: i.catatan, nominalRefund: i.nominalRefund, adminId: i.adminId, now,
+    kode: i.kode, catatan, nominalRefund: i.nominalRefund, adminId: i.adminId, now,
   });
   if (klaim === 'TIDAK_DITEMUKAN') return gagal('TIDAK_DITEMUKAN', 'Pengajuan pembatalan tidak ditemukan atau sudah diputuskan.');
   if (klaim === 'STATUS_BERUBAH') return gagal('STATUS_BERUBAH', 'Status pesanan sudah berubah; muat ulang halaman.');
